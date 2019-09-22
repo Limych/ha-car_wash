@@ -1,0 +1,4 @@
+{
+  "name": "Car Wash sensor",
+  "domains": ["sensor"]
+}
