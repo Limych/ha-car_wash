@@ -1,8 +1,12 @@
+This component checks the weather forecast for several days in advance and concludes whether it is worth washing the car now.
+
 ![Example](https://github.com/Limych/ha-car_wash/raw/master/example.jpg)
 
 ## Features:
 
-- 
+- Can use any weather provider for calculations;
+- It takes into account various unusual weather conditions;
+- It takes into account possible pollution of the car from melted snow even in fine weather conditions.
 
 ## Links
 
