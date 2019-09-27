@@ -134,26 +134,26 @@ class CarWashBinarySensor(BinarySensorDevice):
         cond = wd.state
         forecast = wd.attributes.get(ATTR_FORECAST)
 
-        _LOGGER.debug('Current temperature %s, condition \'%s\'', t, cond)
-
-        t = self._temp2c(t, tu)
-
         if forecast is None:
             raise HomeAssistantError(
                 'Can\'t get forecast data!'
                 ' Are you sure it\'s the weather provider?')
 
-        cur_date = datetime.now().strftime('%F')
-        stop_date = datetime.fromtimestamp(
-            datetime.now().timestamp() + 86400 * (self._days + 1)
-        ).strftime('%F')
-        _LOGGER.debug('Inspect weather forecast from now till %s', stop_date)
+        _LOGGER.debug('Current temperature %s, condition \'%s\'', t, cond)
+
+        t = self._temp2c(t, tu)
 
         if cond in BAD_CONDITIONS:
             _LOGGER.debug('Detected bad weather condition')
             self._state = False
             return
 
+        cur_date = datetime.now().strftime('%F')
+        stop_date = datetime.fromtimestamp(
+            datetime.now().timestamp() + 86400 * (self._days + 1)
+        ).strftime('%F')
+
+        _LOGGER.debug('Inspect weather forecast from now till %s', stop_date)
         for fc in forecast:
             fc_date = fc.get(ATTR_FORECAST_TIME)
             if type(fc_date) == int:
