@@ -21,7 +21,8 @@ This component checks the weather forecast for several days in advance and concl
 
 What makes this sensor different from others built into HA:
 
-*NB. You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).*
+> **_Note_**:\
+> You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).
 
 I also suggest you [visit the support topic][forum-support] on the community forum.
 
@@ -44,8 +45,9 @@ I also suggest you [visit the support topic][forum-support] on the community for
 
 This sensor should work with any weather provider in any of it settings. But please note that the sensor cannot see further than the weather provider shows. Therefore, it is recommended to set the `daily` mode in the weather provider settings. If necessary, you can configure a separate weather provider instance especially for this sensor.
 
-**NB.** Unfortunately, the binary sensor can show only two states — “on” and “off”.
-In the case of this sensor, “on” should be interpreted as *“it is worth washing the car”*, and “off” — as *“you should not wash the car”*.
+> **_Note_**:\
+> Unfortunately, the binary sensor can show only two states — “on” and “off”.
+> In the case of this sensor, “on” should be interpreted as *“it is worth washing the car”*, and “off” — as *“you should not wash the car”*.
 
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:

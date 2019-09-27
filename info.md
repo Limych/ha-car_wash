@@ -13,6 +13,10 @@ This component checks the weather forecast for several days in advance and concl
 - [Documentation](https://github.com/Limych/ha-car_wash)
 - [Configuration](https://github.com/Limych/ha-car_wash#configuration-variables)
 
+
+- [Report a Bug](https://github.com/Limych/ha-car_wash/issues/new?template=issue.md)
+- [Suggest an idea](https://github.com/Limych/ha-car_wash/issues/new?template=feature_request.md)
+
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><br>
