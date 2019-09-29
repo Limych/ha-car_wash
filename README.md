@@ -19,8 +19,6 @@ This component checks the weather forecast for several days in advance and concl
 
 ![Example](example.jpg)
 
-What makes this sensor different from others built into HA:
-
 > **_Note_**:\
 > You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).
 
