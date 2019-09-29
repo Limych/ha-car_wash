@@ -27,9 +27,11 @@ from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util.temperature import convert as convert_temperature
 
-VERSION = '1.2.6'
-
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+VERSION = '1.2.7'
+ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
 
 CONF_WEATHER = 'weather'
 CONF_DAYS = 'days'
@@ -50,9 +52,10 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend({
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
     """Set up the Car Wash sensor."""
-    _LOGGER.debug('Version %s', VERSION)
-    _LOGGER.info('if you have ANY issues with this, please report them here:'
-                 ' https://github.com/Limych/ha-car_wash')
+    # Print startup message
+    _LOGGER.info('Version %s', VERSION)
+    _LOGGER.info('If you have ANY issues with this,'
+                 ' please report them here: %s', ISSUE_URL)
 
     name = config.get(CONF_NAME)
     weather = config.get(CONF_WEATHER)
