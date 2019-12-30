@@ -38,7 +38,7 @@ DEFAULT_NAME = 'Car Wash'
 DEFAULT_DAYS = 2
 
 BAD_CONDITIONS = ["lightning-rainy", "rainy", "pouring", "snowy",
-                  "snowy-rainy"]
+                  "snowy-rainy", "hail", "exceptional"]
 
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend({
     vol.Required(CONF_WEATHER): cv.entity_id,
