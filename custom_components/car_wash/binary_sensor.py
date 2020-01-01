@@ -7,7 +7,7 @@
 The Car Wash binary sensor.
 
 For more details about this platform, please refer to the documentation at
-https://github.com/Limych/HomeAssistantComponents/
+https://github.com/Limych/ha-car_wash/
 """
 import logging
 from datetime import datetime
@@ -27,9 +27,11 @@ from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util.temperature import convert as convert_temperature
 
-VERSION = '1.2.6'
-
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+VERSION = '1.2.8'
+ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
 
 CONF_WEATHER = 'weather'
 CONF_DAYS = 'days'
@@ -48,11 +50,12 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend({
 
 
 async def async_setup_platform(hass, config, async_add_entities,
-                               discovery_info=None):
+                               discovery_info=None):    # pylint: disable=w0613
     """Set up the Car Wash sensor."""
-    _LOGGER.debug('Version %s', VERSION)
-    _LOGGER.info('if you have ANY issues with this, please report them here:'
-                 ' https://github.com/Limych/ha-car_wash')
+    # Print startup message
+    _LOGGER.info('Version %s', VERSION)
+    _LOGGER.info('If you have ANY issues with this,'
+                 ' please report them here: %s', ISSUE_URL)
 
     name = config.get(CONF_NAME)
     weather = config.get(CONF_WEATHER)
@@ -76,12 +79,12 @@ class CarWashBinarySensor(BinarySensorDevice):
         """Register callbacks."""
 
         @callback
-        def sensor_state_listener(entity, old_state, new_state):
+        def sensor_state_listener(entity, old_state, new_state):    # pylint: disable=w0613
             """Handle device state changes."""
             self.async_schedule_update_ha_state(True)
 
         @callback
-        def sensor_startup(event):
+        def sensor_startup(event):  # pylint: disable=w0613
             """Update template on startup."""
             async_track_state_change(
                 self._hass, [self._weather_entity], sensor_state_listener)
@@ -120,43 +123,43 @@ class CarWashBinarySensor(BinarySensorDevice):
 
         return temperature
 
-    async def async_update(self):
+    async def async_update(self):   # pylint: disable=r0912,r0915
         """Update the sensor state."""
-        wd = self._hass.states.get(self._weather_entity)
+        wdata = self._hass.states.get(self._weather_entity)
 
-        if wd is None:
+        if wdata is None:
             raise HomeAssistantError(
                 'Unable to find an entity called {}'.format(
                     self._weather_entity))
 
-        tu = self._hass.config.units.temperature_unit
-        t = wd.attributes.get(ATTR_WEATHER_TEMPERATURE)
-        cond = wd.state
-        forecast = wd.attributes.get(ATTR_FORECAST)
-
-        _LOGGER.debug('Current temperature %s, condition \'%s\'', t, cond)
-
-        t = self._temp2c(t, tu)
+        tmpu = self._hass.config.units.temperature_unit
+        temp = wdata.attributes.get(ATTR_WEATHER_TEMPERATURE)
+        cond = wdata.state
+        forecast = wdata.attributes.get(ATTR_FORECAST)
 
         if forecast is None:
             raise HomeAssistantError(
                 'Can\'t get forecast data!'
                 ' Are you sure it\'s the weather provider?')
 
-        cur_date = datetime.now().strftime('%F')
-        stop_date = datetime.fromtimestamp(
-            datetime.now().timestamp() + 86400 * (self._days + 1)
-        ).strftime('%F')
-        _LOGGER.debug('Inspect weather forecast from now till %s', stop_date)
+        _LOGGER.debug('Current temperature %s, condition \'%s\'', temp, cond)
+
+        temp = self._temp2c(temp, tmpu)
 
         if cond in BAD_CONDITIONS:
             _LOGGER.debug('Detected bad weather condition')
             self._state = False
             return
 
-        for fc in forecast:
-            fc_date = fc.get(ATTR_FORECAST_TIME)
-            if type(fc_date) == int:
+        cur_date = datetime.now().strftime('%F')
+        stop_date = datetime.fromtimestamp(
+            datetime.now().timestamp() + 86400 * (self._days + 1)
+        ).strftime('%F')
+
+        _LOGGER.debug('Inspect weather forecast from now till %s', stop_date)
+        for fcast in forecast:
+            fc_date = fcast.get(ATTR_FORECAST_TIME)
+            if isinstance(fc_date) == int:
                 fc_date = dt_util.as_local(datetime.utcfromtimestamp(
                     fc_date / 1000)).isoformat()
             fc_date = fc_date[:10]
@@ -166,10 +169,10 @@ class CarWashBinarySensor(BinarySensorDevice):
                 break
             _LOGGER.debug('Inspect weather forecast for %s', fc_date)
 
-            prec = fc.get(ATTR_FORECAST_PRECIPITATION)
-            cond = fc.get(ATTR_FORECAST_CONDITION)
-            tmin = fc.get(ATTR_FORECAST_TEMP_LOW)
-            tmax = fc.get(ATTR_FORECAST_TEMP)
+            prec = fcast.get(ATTR_FORECAST_PRECIPITATION)
+            cond = fcast.get(ATTR_FORECAST_CONDITION)
+            tmin = fcast.get(ATTR_FORECAST_TEMP_LOW)
+            tmax = fcast.get(ATTR_FORECAST_TEMP)
             _LOGGER.debug(
                 'Precipitation %s, Condition \'%s\','
                 ' Min temperature: %s, Max temperature %s',
@@ -184,23 +187,23 @@ class CarWashBinarySensor(BinarySensorDevice):
                 self._state = False
                 return
             if tmin is not None and fc_date != cur_date:
-                tmin = self._temp2c(tmin, tu)
-                if t < 0 <= tmin:
+                tmin = self._temp2c(tmin, tmpu)
+                if temp < 0 <= tmin:
                     _LOGGER.debug(
                         'Detected passage of temperature through melting'
                         ' point')
                     self._state = False
                     return
-                t = tmin
+                temp = tmin
             if tmax is not None:
-                tmax = self._temp2c(tmax, tu)
-                if t < 0 <= tmax:
+                tmax = self._temp2c(tmax, tmpu)
+                if temp < 0 <= tmax:
                     _LOGGER.debug(
                         'Detected passage of temperature through melting'
                         ' point')
                     self._state = False
                     return
-                t = tmax
+                temp = tmax
 
         _LOGGER.debug('Inspection done. No bad forecast detected')
         self._state = True

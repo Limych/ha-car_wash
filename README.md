@@ -19,8 +19,6 @@ This component checks the weather forecast for several days in advance and concl
 
 ![Example](example.jpg)
 
-What makes this sensor different from others built into HA:
-
 > **_Note_**:\
 > You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).
 
@@ -33,7 +31,6 @@ I also suggest you [visit the support topic][forum-support] on the community for
 1. In the `custom_components` directory (folder) create a new folder called `car_wash`.
 1. Download _all_ the files from the `custom_components/car_wash/` directory (folder) in this repository.
 1. Place the files you downloaded in the new directory (folder) you created.
-1. Restart Home Assistant
 1. Add `car_wash` sensor to your `configuration.yaml` file:
 
     ```yaml
@@ -42,6 +39,8 @@ I also suggest you [visit the support topic][forum-support] on the community for
       - platform: car_wash
         weather: weather.gismeteo_daily
     ```
+
+1. Restart Home Assistant
 
 This sensor should work with any weather provider in any of it settings. But please note that the sensor cannot see further than the weather provider shows. Therefore, it is recommended to set the `daily` mode in the weather provider settings. If necessary, you can configure a separate weather provider instance especially for this sensor.
 

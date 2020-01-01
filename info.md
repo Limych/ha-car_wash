@@ -12,8 +12,6 @@ This component checks the weather forecast for several days in advance and concl
 
 - [Documentation](https://github.com/Limych/ha-car_wash)
 - [Configuration](https://github.com/Limych/ha-car_wash#configuration-variables)
-
-
 - [Report a Bug](https://github.com/Limych/ha-car_wash/issues/new?template=issue.md)
 - [Suggest an idea](https://github.com/Limych/ha-car_wash/issues/new?template=feature_request.md)
 
