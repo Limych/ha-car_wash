@@ -30,7 +30,7 @@ from homeassistant.util.temperature import convert as convert_temperature
 _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
-VERSION = '1.2.9'
+VERSION = '1.2.10'
 ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
 
 CONF_WEATHER = 'weather'
@@ -159,7 +159,7 @@ class CarWashBinarySensor(BinarySensorDevice):
         _LOGGER.debug('Inspect weather forecast from now till %s', stop_date)
         for fcast in forecast:
             fc_date = fcast.get(ATTR_FORECAST_TIME)
-            if isinstance(fc_date) == int:
+            if isinstance(fc_date, int):
                 fc_date = dt_util.as_local(datetime.utcfromtimestamp(
                     fc_date / 1000)).isoformat()
             fc_date = fc_date[:10]
