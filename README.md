@@ -26,6 +26,16 @@ I also suggest you [visit the support topic][forum-support] on the community for
 
 ## Installation
 
+### HACS - Recommended
+
+1. Have [HACS](https://hacs.xyz) installed, this will allow you to easily manage and track updates.
+1. Search for "Car Wash sensor".
+1. Click Install below the found integration.
+1. Configure using the configuration instructions below.
+1. Restart Home-Assistant.
+
+### Manual
+
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 1. If you do not have a `custom_components` directory (folder) there, you need to create it.
 1. In the `custom_components` directory (folder) create a new folder called `car_wash`.
@@ -52,7 +62,6 @@ This sensor should work with any weather provider in any of it settings. But ple
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><br>
 <a href="https://www.patreon.com/join/limych?" target="_blank"><img src="http://khrolenok.ru/support_patreon.png" alt="Patreon" width="250" height="48"></a>
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[car_wash]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url" target="_blank"><img src="http://khrolenok.ru/support_paypal.png" alt="PayPal" width="250" height="48"></a>
 <br>or&nbsp;support via Bitcoin or Etherium:<br>
 <a href="https://sochain.com/a/mjz640g" target="_blank"><img src="http://khrolenok.ru/support_bitcoin.png" alt="Bitcoin" width="150"><br>
 16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts</a>

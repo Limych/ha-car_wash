@@ -1,6 +1,6 @@
 {
     "car_wash": {
-        "version": "1.2.10",
+        "version": "1.2.11",
         "local_location": "/custom_components/car_wash/__init__.py",
         "remote_location": "https://raw.githubusercontent.com/Limych/ha-car_wash/master/custom_components/car_wash/__init__.py",
         "visit_repo": "https://github.com/Limych/ha-car_wash",
