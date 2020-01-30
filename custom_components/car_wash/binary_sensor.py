@@ -30,7 +30,7 @@ from homeassistant.util.temperature import convert as convert_temperature
 _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
-VERSION = '1.2.10'
+VERSION = '1.2.11'
 ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
 
 CONF_WEATHER = 'weather'
