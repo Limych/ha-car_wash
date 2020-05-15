@@ -102,5 +102,28 @@ custom_updater:
     - https://raw.githubusercontent.com/Limych/ha-car_wash/master/tracker.json
 ```
 
+## Contributions are welcome!
+
+This is an active open-source project. We are always open to people who want to
+use the code or contribute to it.
+
+We have set up a separate document containing our
+[contribution guidelines](CONTRIBUTING.md).
+
+Thank you for being involved! :heart_eyes:
+
+## Authors & contributors
+
+The original setup of this component is by [Andrey "Limych" Khrolenok][limych].
+
+For a full list of all authors and contributors,
+check [the contributor's page][contributors].
+
+## License
+
+creative commons Attribution-NonCommercial-ShareAlike 4.0 International License
+
+See separate [license file](LICENSE.md) for full text.
+
 [forum-support]: https://community.home-assistant.io/t/car-wash-binary-sensor/110046
 [hacs]: https://github.com/custom-components/hacs
