@@ -13,7 +13,13 @@ import logging
 from datetime import datetime
 
 import voluptuous as vol
-from homeassistant.components.binary_sensor import BinarySensorEntity
+
+try:
+    from homeassistant.components.binary_sensor import BinarySensorEntity
+except ImportError:
+    from homeassistant.components.binary_sensor import (
+        BinarySensorDevice as BinarySensorEntity,
+    )
 from homeassistant.components.weather import (
     ATTR_FORECAST_PRECIPITATION,
     ATTR_FORECAST_TIME,
