@@ -31,9 +31,11 @@ from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util.temperature import convert as convert_temperature
 
-from .const import (
+from . import (
     VERSION,
     ISSUE_URL,
+)
+from .const import (
     CONF_WEATHER,
     DEFAULT_NAME,
     DEFAULT_DAYS,
