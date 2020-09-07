@@ -89,18 +89,7 @@ Follow the link to see example hou you can use [this sensor in automations](http
 
 ## Track updates
 
-You can automatically track new versions of this component and update it by [custom-updater](https://github.com/custom-components/custom_updater) (deprecated) or [HACS][hacs].
-
-For custom-updater to initiate tracking add this lines to you `configuration.yaml` file:
-
-```yaml
-# Example configuration.yaml entry
-custom_updater:
-  track:
-    - components
-  component_urls:
-    - https://raw.githubusercontent.com/Limych/ha-car_wash/master/tracker.json
-```
+You can automatically track new versions of this component and update it by [HACS][hacs].
 
 ## Contributions are welcome!
 
@@ -127,3 +116,5 @@ See separate [license file](LICENSE.md) for full text.
 
 [forum-support]: https://community.home-assistant.io/t/car-wash-binary-sensor/110046
 [hacs]: https://github.com/custom-components/hacs
+[limych]: https://github.com/Limych
+[contributors]: https://github.com/Limych/ha-car_wash/graphs/contributors
