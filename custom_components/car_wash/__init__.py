@@ -11,5 +11,5 @@ https://github.com/Limych/ha-car_wash/
 """
 
 # Base component constants
-VERSION = '1.2.14'
+VERSION = '1.2.15'
 ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
