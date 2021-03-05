@@ -1,22 +1,22 @@
-#
-#  Copyright (c) 2019, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
-#
 """
 The Car Wash binary sensor.
 
 For more details about this platform, please refer to the documentation at
 https://github.com/Limych/ha-car_wash/
 """
+
 import logging
 from datetime import datetime
+from typing import Optional
 
 import voluptuous as vol
 
 try:
     from homeassistant.components.binary_sensor import BinarySensorEntity
-except ImportError:
+except ImportError:  # pragma: no cover
     from homeassistant.components.binary_sensor import (
         BinarySensorDevice as BinarySensorEntity,
     )
@@ -44,21 +44,24 @@ from .const import (
     CONF_WEATHER,
     DEFAULT_DAYS,
     DEFAULT_NAME,
+    DOMAIN,
+    ICON,
     STARTUP_MESSAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_WEATHER): cv.entity_id,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Optional(CONF_DAYS, default=DEFAULT_DAYS): vol.Coerce(int),
+        vol.Optional(CONF_DAYS, default=DEFAULT_DAYS): cv.positive_int,
     }
 )
 
 
-# pylint: disable=w0613
+# pylint: disable=unused-argument
 async def async_setup_platform(
     hass: HomeAssistant, config, async_add_entities, discovery_info=None
 ):
@@ -84,26 +87,10 @@ class CarWashBinarySensor(BinarySensorEntity):
         self._days = days
         self._state = None
 
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-
-        @callback
-        def sensor_state_listener(  # pylint: disable=w0613
-            entity, old_state, new_state
-        ):
-            """Handle device state changes."""
-            self.async_schedule_update_ha_state(True)
-
-        @callback
-        def sensor_startup(event):  # pylint: disable=w0613
-            """Update template on startup."""
-            async_track_state_change(
-                self._hass, [self._weather_entity], sensor_state_listener
-            )
-
-            self.async_schedule_update_ha_state(True)
-
-        self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
+    @property
+    def unique_id(self):
+        """Return a unique ID to use for this entity."""
+        return DOMAIN + "-" + str(self._weather_entity).split(".")[1]
 
     @property
     def should_poll(self):
@@ -116,6 +103,11 @@ class CarWashBinarySensor(BinarySensorEntity):
         return self._name
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._state is not None
+
+    @property
     def is_on(self):
         """Return True if sensor is on."""
         return self._state
@@ -123,10 +115,31 @@ class CarWashBinarySensor(BinarySensorEntity):
     @property
     def icon(self):
         """Return the icon to use in the frontend, if any."""
-        return "mdi:car-wash"
+        return ICON
+
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+
+        # pylint: disable=unused-argument
+        @callback
+        def sensor_state_listener(entity, old_state, new_state):
+            """Handle device state changes."""
+            self.async_schedule_update_ha_state(True)
+
+        # pylint: disable=unused-argument
+        @callback
+        def sensor_startup(event):
+            """Update template on startup."""
+            async_track_state_change(
+                self._hass, [self._weather_entity], sensor_state_listener
+            )
+
+            self.async_schedule_update_ha_state(True)
+
+        self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
     @staticmethod
-    def _temp2c(temperature: float, temperature_unit: str) -> float:
+    def _temp2c(temperature: Optional[float], temperature_unit: str) -> Optional[float]:
         """Convert weather temperature to Celsius degree."""
         if temperature is not None and temperature_unit != TEMP_CELSIUS:
             temperature = convert_temperature(
@@ -135,7 +148,8 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         return temperature
 
-    async def async_update(self):  # pylint: disable=r0912,r0915
+    # pylint: disable=r0912,r0915
+    async def async_update(self):
         """Update the sensor state."""
         wdata = self._hass.states.get(self._weather_entity)
 
@@ -150,6 +164,7 @@ class CarWashBinarySensor(BinarySensorEntity):
         forecast = wdata.attributes.get(ATTR_FORECAST)
 
         if forecast is None:
+            self._state = None
             raise HomeAssistantError(
                 "Can't get forecast data! Are you sure it's the weather provider?"
             )
@@ -163,9 +178,10 @@ class CarWashBinarySensor(BinarySensorEntity):
             self._state = False
             return
 
-        cur_date = datetime.now().strftime("%F")
+        today = dt_util.start_of_local_day()
+        cur_date = today.strftime("%F")
         stop_date = datetime.fromtimestamp(
-            datetime.now().timestamp() + 86400 * (self._days + 1)
+            today.timestamp() + 86400 * (self._days + 1)
         ).strftime("%F")
 
         _LOGGER.debug("Inspect weather forecast from now till %s", stop_date)

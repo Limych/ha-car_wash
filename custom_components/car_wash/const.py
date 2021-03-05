@@ -1,14 +1,23 @@
-#
 #  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
-#
 """
 The Car Wash binary sensor.
 
 For more details about this platform, please refer to the documentation at
 https://github.com/Limych/ha-car_wash/
 """
+
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
+from homeassistant.components.weather import (
+    ATTR_CONDITION_EXCEPTIONAL,
+    ATTR_CONDITION_HAIL,
+    ATTR_CONDITION_LIGHTNING_RAINY,
+    ATTR_CONDITION_POURING,
+    ATTR_CONDITION_RAINY,
+    ATTR_CONDITION_SNOWY,
+    ATTR_CONDITION_SNOWY_RAINY,
+)
 
 # Base component constants
 NAME = "Car Wash"
@@ -27,14 +36,12 @@ If you have ANY issues with this you need to open an issue here:
 """
 
 # Icons
+ICON = "mdi:car-wash"
 
 # Device classes
 
 # Platforms
-BINARY_SENSOR = "binary_sensor"
-SENSOR = "sensor"
-SWITCH = "switch"
-PLATFORMS = [BINARY_SENSOR, SENSOR, SWITCH]
+PLATFORMS = [BINARY_SENSOR]
 
 # Configuration and options
 CONF_WEATHER = "weather"
@@ -48,11 +55,11 @@ DEFAULT_DAYS = 2
 
 
 BAD_CONDITIONS = [
-    "lightning-rainy",
-    "rainy",
-    "pouring",
-    "snowy",
-    "snowy-rainy",
-    "hail",
-    "exceptional",
+    ATTR_CONDITION_LIGHTNING_RAINY,
+    ATTR_CONDITION_RAINY,
+    ATTR_CONDITION_POURING,
+    ATTR_CONDITION_SNOWY,
+    ATTR_CONDITION_SNOWY_RAINY,
+    ATTR_CONDITION_HAIL,
+    ATTR_CONDITION_EXCEPTIONAL,
 ]
