@@ -20,33 +20,31 @@ except ImportError:
     from homeassistant.components.binary_sensor import (
         BinarySensorDevice as BinarySensorEntity,
     )
+
 from homeassistant.components.weather import (
+    ATTR_FORECAST,
+    ATTR_FORECAST_CONDITION,
     ATTR_FORECAST_PRECIPITATION,
-    ATTR_FORECAST_TIME,
     ATTR_FORECAST_TEMP,
     ATTR_FORECAST_TEMP_LOW,
-    ATTR_FORECAST_CONDITION,
+    ATTR_FORECAST_TIME,
     ATTR_WEATHER_TEMPERATURE,
-    ATTR_FORECAST,
 )
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_START, TEMP_CELSIUS
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util.temperature import convert as convert_temperature
 
-from . import (
-    VERSION,
-    ISSUE_URL,
-)
 from .const import (
-    CONF_WEATHER,
-    DEFAULT_NAME,
-    DEFAULT_DAYS,
-    CONF_DAYS,
     BAD_CONDITIONS,
+    CONF_DAYS,
+    CONF_WEATHER,
+    DEFAULT_DAYS,
+    DEFAULT_NAME,
+    STARTUP_MESSAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,13 +59,12 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
 
 
 # pylint: disable=w0613
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(
+    hass: HomeAssistant, config, async_add_entities, discovery_info=None
+):
     """Set up the Car Wash sensor."""
     # Print startup message
-    _LOGGER.info("Version %s", VERSION)
-    _LOGGER.info(
-        "If you have ANY issues with this, please report them here: %s", ISSUE_URL
-    )
+    _LOGGER.info(STARTUP_MESSAGE)
 
     name = config.get(CONF_NAME)
     weather = config.get(CONF_WEATHER)
@@ -79,7 +76,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 class CarWashBinarySensor(BinarySensorEntity):
     """Implementation of an Car Wash binary sensor."""
 
-    def __init__(self, hass, friendly_name, weather_entity, days):
+    def __init__(self, hass: HomeAssistant, friendly_name: str, weather_entity, days):
         """Initialize the sensor."""
         self._hass = hass
         self._name = friendly_name
