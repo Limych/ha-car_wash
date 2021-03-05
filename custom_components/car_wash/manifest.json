@@ -4,8 +4,10 @@
     "version": "1.2.17.dev0",
     "documentation": "https://github.com/Limych/ha-car_wash",
     "issue_tracker": "https://github.com/Limych/ha-car_wash/issues",
-    "dependencies": [],
-    "config_flow": true,
+    "dependencies": [
+        "weather"
+    ],
+    "config_flow": false,
     "codeowners": [
         "@Limych"
     ],
