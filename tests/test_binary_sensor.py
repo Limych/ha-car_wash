@@ -138,6 +138,7 @@ async def test_async_update(hass: HomeAssistant, mock_weather):
                 },
                 {
                     ATTR_FORECAST_TIME: today,
+                    ATTR_FORECAST_PRECIPITATION: "null",
                 },
                 {
                     ATTR_FORECAST_TIME: int(today_ts + 3 * days),

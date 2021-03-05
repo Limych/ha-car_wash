@@ -213,7 +213,7 @@ class CarWashBinarySensor(BinarySensorEntity):
                 tmax,
             )
 
-            if prec:
+            if prec and prec != "null":
                 _LOGGER.debug("Precipitation detected")
                 self._state = False
                 return
