@@ -4,7 +4,7 @@
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE.md)
+[![License][license-shield]][license]
 
 [![hacs][hacs-shield]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
