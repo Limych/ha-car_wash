@@ -1,4 +1,4 @@
-"""The test for the average sensor platform."""
+"""The test for the binary sensor platform."""
 # pylint: disable=redefined-outer-name
 import pytest
 from homeassistant.components.weather import (
@@ -60,8 +60,9 @@ async def test_entity_initialization(hass: HomeAssistant):
     """Test sensor initialization."""
     entity = CarWashBinarySensor(hass, "test", "weather.test_monitored", 2)
 
-    assert entity.name == "test"
     assert entity.unique_id == "car_wash-test_monitored"
+    assert entity.name == "test"
+    assert entity.device_class == f"{DOMAIN}__"
     assert entity.should_poll is False
     assert entity.available is False
     assert entity.is_on is None

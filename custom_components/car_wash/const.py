@@ -22,7 +22,7 @@ from homeassistant.components.weather import (
 # Base component constants
 NAME = "Car Wash"
 DOMAIN = "car_wash"
-VERSION = "1.2.17"
+VERSION = "1.2.18.dev0"
 ISSUE_URL = "https://github.com/Limych/ha-car_wash/issues"
 
 STARTUP_MESSAGE = f"""

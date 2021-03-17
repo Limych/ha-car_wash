@@ -98,6 +98,11 @@ class CarWashBinarySensor(BinarySensorEntity):
         return False
 
     @property
+    def device_class(self):
+        """Return the class of this device, from component DEVICE_CLASSES."""
+        return f"{DOMAIN}__"
+
+    @property
     def name(self):
         """Return the name of the sensor."""
         return self._name

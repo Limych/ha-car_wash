@@ -11,6 +11,3 @@ logger:
 binary_sensor:
   - platform: car_wash
     weather: weather.home_assistant
-
-weather:
-  - platform: demo
