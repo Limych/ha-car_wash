@@ -1,0 +1,9 @@
+
+{
+  "state": {
+    "car_wash__": {
+      "off": "Non è il momento di lavare L'auto",
+      "on": "E' ora di lavare l'auto"
+    }
+  }
+}
