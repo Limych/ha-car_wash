@@ -128,7 +128,7 @@ See separate [license file](LICENSE.md) for full text.
 [commits]: https://github.com/Limych/ha-car_wash/commits/master
 [hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg?style=popout
 [hacs]: https://hacs.xyz
-[exampleimg]: https://github.com/Limych/ha-car_wash/raw/master/example.jpg
+[exampleimg]: https://github.com/Limych/ha-car_wash/raw/dev/example.jpg
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
 [forum]: https://community.home-assistant.io/t/car-wash-binary-sensor/110046
 [license]: https://github.com/Limych/ha-car_wash/blob/main/LICENSE.md
