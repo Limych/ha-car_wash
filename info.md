@@ -47,7 +47,7 @@ I put a lot of work into making this repo and component available and updated to
 
 [component]: https://github.com/Limych/ha-car_wash
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Limych/ha-car_wash.svg?style=popout
-[commits]: https://github.com/Limych/ha-car_wash/commits/master
+[commits]: https://github.com/Limych/ha-car_wash/commits/dev
 [hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg?style=popout
 [hacs]: https://hacs.xyz
 [exampleimg]: https://github.com/Limych/ha-car_wash/raw/dev/example.jpg
