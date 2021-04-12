@@ -15,9 +15,6 @@ _This component checks the weather forecast for several days in advance and conc
 
 ![example][exampleimg]
 
-> **_Note_**:\
-> You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).
-
 I also suggest you [visit the support topic][forum] on the community forum.
 
 ## Installation
@@ -53,8 +50,6 @@ binary_sensor:
     weather: weather.gismeteo_daily
 ```
 
-This sensor should work with any weather provider in any of it settings. But please note that the sensor cannot see further than the weather provider shows. Therefore, it is recommended to set the `daily` mode in the weather provider settings. If necessary, you can configure a separate weather provider instance especially for this sensor.
-
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><br>
@@ -66,6 +61,9 @@ I put a lot of work into making this repo and component available and updated to
 
 ### Configuration Variables
 
+> **_Note_**:\
+> This sensor should work with any weather provider in any of it settings. But please note that the sensor cannot see further than the weather provider shows. Therefore, it is recommended to set the `daily` mode in the weather provider settings. If necessary, you can configure a separate weather provider instance especially for this sensor.
+
 **weather:**\
   _(string) (Required)_\
   Weather provider entity ID.
@@ -75,12 +73,15 @@ I put a lot of work into making this repo and component available and updated to
   Name to use in the frontend.
 
 **days:**\
-  _(integer) (Optional) (Default value: 2)_\
+  _(positive integer) (Optional) (Default value: 2)_\
   The number of days how far forward the sensor looks for the weather forecast.
 
 ## Usage examples
 
 Follow the link to see example how you can use [this sensor in automations](https://community.home-assistant.io/t/car-wash-binary-sensor/110046/20).
+
+> **_Note_**:\
+> You can find a real example of using this component in [my Home Assistant configuration](https://github.com/Limych/HomeAssistantConfiguration).
 
 ## Track updates
 
@@ -100,11 +101,9 @@ logger:
 
 ## Contributions are welcome!
 
-This is an active open-source project. We are always open to people who want to
-use the code or contribute to it.
+This is an active open-source project. We are always open to people who want to use the code or contribute to it.
 
-We have set up a separate document containing our
-[contribution guidelines](CONTRIBUTING.md).
+We have set up a separate document containing our [contribution guidelines](CONTRIBUTING.md).
 
 Thank you for being involved! :heart_eyes:
 
@@ -112,8 +111,7 @@ Thank you for being involved! :heart_eyes:
 
 The original setup of this component is by [Andrey "Limych" Khrolenok](https://github.com/Limych).
 
-For a full list of all authors and contributors,
-check [the contributor's page][contributors].
+For a full list of all authors and contributors, check [the contributor's page][contributors].
 
 ## License
 
