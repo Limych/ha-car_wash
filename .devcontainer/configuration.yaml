@@ -11,3 +11,4 @@ logger:
 binary_sensor:
   - platform: car_wash
     weather: weather.home_assistant
+    unique_id: __legacy__
