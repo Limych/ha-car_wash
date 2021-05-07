@@ -30,6 +30,11 @@ from pytest_homeassistant_custom_component.common import assert_setup_component
 from custom_components.car_wash.binary_sensor import CarWashBinarySensor
 from custom_components.car_wash.const import CONF_WEATHER, DOMAIN, ICON
 
+TEST_UNIQUE_ID = "test_id"
+TEST_NAME = "test_name"
+TEST_WEATHER = "weather.test_monitored"
+TEST_DAYS = 2
+
 TEST_CONFIG = {
     CONF_PLATFORM: DOMAIN,
     CONF_NAME: "test",
@@ -58,10 +63,18 @@ async def mock_weather(hass: HomeAssistant):
 
 async def test_entity_initialization(hass: HomeAssistant):
     """Test sensor initialization."""
-    entity = CarWashBinarySensor(hass, "test", "weather.test_monitored", 2)
+    entity = CarWashBinarySensor(None, TEST_NAME, TEST_WEATHER, TEST_DAYS)
+
+    assert entity.unique_id is None
+
+    entity = CarWashBinarySensor("__legacy__", TEST_NAME, TEST_WEATHER, TEST_DAYS)
 
     assert entity.unique_id == "car_wash-test_monitored"
-    assert entity.name == "test"
+
+    entity = CarWashBinarySensor(TEST_UNIQUE_ID, TEST_NAME, TEST_WEATHER, TEST_DAYS)
+
+    assert entity.unique_id == TEST_UNIQUE_ID
+    assert entity.name == TEST_NAME
     assert entity.device_class == f"{DOMAIN}__"
     assert entity.should_poll is False
     assert entity.available is False
@@ -108,11 +121,15 @@ async def test__temp2c():
 
 async def test_async_update(hass: HomeAssistant, mock_weather):
     """Test platform setup."""
-    entity = CarWashBinarySensor(hass, "test", "weather.nonexistent", 2)
+    entity = CarWashBinarySensor(
+        TEST_UNIQUE_ID, TEST_NAME, "weather.nonexistent", TEST_DAYS
+    )
+    entity.hass = hass
     with raises(HomeAssistantError):
         await entity.async_update()
 
-    entity = CarWashBinarySensor(hass, "test", "weather.test_monitored", 2)
+    entity = CarWashBinarySensor(TEST_UNIQUE_ID, TEST_NAME, TEST_WEATHER, TEST_DAYS)
+    entity.hass = hass
     assert entity.is_on is None
 
     hass.states.async_set("weather.test_monitored", None)

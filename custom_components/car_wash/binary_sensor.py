@@ -87,7 +87,13 @@ async def async_setup_platform(
 class CarWashBinarySensor(BinarySensorEntity):
     """Implementation of an Car Wash binary sensor."""
 
-    def __init__(self, unique_id, friendly_name: str, weather_entity, days):
+    def __init__(
+        self,
+        unique_id: Optional[str],
+        friendly_name: str,
+        weather_entity: str,
+        days: int,
+    ):
         """Initialize the sensor."""
         self._name = friendly_name
         self._weather_entity = weather_entity
