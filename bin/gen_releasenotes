@@ -3,11 +3,11 @@
 import argparse
 import logging
 import os
+import re
 import subprocess
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Tuple
 
-from awesomeversion.match import is_pep440
 from github import Github, GithubException, Repository, Tag
 from packaging.version import Version
 
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.CRITICAL)
 
 _LOGGER = logging.getLogger(__name__)
 
-VERSION = "1.1.8"
+VERSION = "1.2.1"
 
 ROOT = os.path.dirname(os.path.abspath(f"{__file__}/.."))
 
@@ -28,6 +28,10 @@ BODY = """
 
 {changes}
 
+... and by bots:
+
+{bot_changes}
+
 ## Links
 
 - [If you like what I (@limych) do please consider sponsoring me on Patreon](https://www.patreon.com/join/limych?)
@@ -35,6 +39,16 @@ BODY = """
 
 CHANGE = "- [{line}]({link}) @{author}\n"
 NOCHANGE = "_No changes in this release._"
+
+RE_PEP440 = re.compile(
+    r"([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)"
+    r"(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?(\.rc(0|[1-9][0-9]*))?"
+)
+
+
+def is_pep440(version: str) -> bool:
+    """Return True if the version is PEP 440 compliant."""
+    return bool(RE_PEP440.match(version))
 
 
 def get_commits(repo: Repository, since: datetime, until: datetime):
@@ -62,13 +76,13 @@ def get_release_tags(repo: Repository) -> List[Tag.Tag]:
     return tags
 
 
-def get_period(repo: Repository, release: str = None) -> List[datetime]:
+def get_period(repo: Repository, release: Optional[str] = None) -> List[datetime]:
     """Return time period for release notes."""
     data = [datetime.now()]
     dateformat = "%a, %d %b %Y %H:%M:%S GMT"
     found = release is None
     last = False
-    is_prerelease = Version(release).is_prerelease
+    is_prerelease = Version(release).is_prerelease if release is not None else False
     for tag in get_release_tags(repo):
         last = False
         commit = repo.get_commit(tag.commit.sha)
@@ -79,14 +93,16 @@ def get_period(repo: Repository, release: str = None) -> List[datetime]:
             break
         if release is not None and release == tag.name:
             found = last = True
-    if found and last:
+    if (found and last) or len(data) < 2:
         data.append(datetime.fromtimestamp(0))
     return list(reversed(data[-2:]))
 
 
-def gen_changes(repo: Repository, tag: str = None) -> str:
+def gen_changes(repo: Repository, tag: Optional[str] = None) -> Tuple[str, str, str]:
     """Generate list of commits."""
-    changes = ""
+    all_changes = ""
+    human_changes = ""
+    bot_changes = ""
     period = get_period(repo, tag)
     _LOGGER.debug("Period: %s", period)
 
@@ -106,11 +122,21 @@ def gen_changes(repo: Repository, tag: str = None) -> str:
             or "Fix errors" in msg
         ):
             continue
-        changes += CHANGE.format(
+
+        change = CHANGE.format(
             line=msg, link=commit.html_url, author=commit.author.login
         )
+        all_changes += change
+        if "[bot]" not in commit.author.login:
+            human_changes += change
+        else:
+            bot_changes += change
 
-    return changes if changes != "" else NOCHANGE
+    return (
+        all_changes if all_changes != "" else NOCHANGE,
+        human_changes if human_changes != "" else NOCHANGE,
+        bot_changes if bot_changes != "" else NOCHANGE,
+    )
 
 
 def _bump_release(release, bump_type):
@@ -199,29 +225,26 @@ def main():
     _LOGGER.debug("Repo: %s", arguments.repo)
     repo = github.get_repo(arguments.repo)
     if arguments.release is None:
-        changes = gen_changes(repo)
+        changes = gen_changes(repo)[0]
         _LOGGER.debug(changes)
         if changes != NOCHANGE:
             version = Version(get_release_tags(repo)[0].name.lstrip("v"))
             _LOGGER.debug(version)
             new_version = bump_version(version)
             _LOGGER.debug(new_version)
-            print(
-                "Generated release notes for v{version}:\n{message}".format(
-                    version=new_version,
-                    message=changes,
-                )
-            )
+            print(f"Generated release notes for v{new_version}:\n{changes}")
         else:
             print("Not enough changes for a release.")
     else:
         tag = arguments.release.replace("refs/tags/", "")
         _LOGGER.debug("Release tag: %s", tag)
         version = Version(tag)
+        (_, human_changes, bot_changes) = gen_changes(repo, tag)
         msg = BODY.format(
             repo=arguments.repo,
             version=str(version),
-            changes=gen_changes(repo, tag),
+            changes=human_changes,
+            bot_changes=bot_changes,
         )
         if arguments.dry_run:
             print("Is prerelease:", version.is_prerelease)

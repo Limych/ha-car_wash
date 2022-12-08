@@ -1,6 +1,11 @@
 {% if prerelease %}
 ### NB!: This is a Beta version!
 {% endif %}
+{% if (version_installed.split(".")[0:2] | join | int) < 15 %}
+### ATTENTION! Breaking changes!
+
+The mechanism for specifying the unique ID of sensors has been changed. To prevent duplicate sensors from being created, add option `unique_id: __legacy__` to the settings of already available sensors. For more information, see the component's documentation.
+{% endif %}
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
@@ -8,6 +13,7 @@
 
 [![hacs][hacs-shield]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
+[![Support me on Patreon][patreon-shield]][patreon]
 
 [![Community Forum][forum-shield]][forum]
 
@@ -47,10 +53,10 @@ I put a lot of work into making this repo and component available and updated to
 
 [component]: https://github.com/Limych/ha-car_wash
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Limych/ha-car_wash.svg?style=popout
-[commits]: https://github.com/Limych/ha-car_wash/commits/master
+[commits]: https://github.com/Limych/ha-car_wash/commits/dev
 [hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg?style=popout
 [hacs]: https://hacs.xyz
-[exampleimg]: https://github.com/Limych/ha-car_wash/raw/master/example.jpg
+[exampleimg]: https://github.com/Limych/ha-car_wash/raw/dev/example.jpg
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
 [forum]: https://community.home-assistant.io/t/car-wash-binary-sensor/110046
 [license]: https://github.com/Limych/ha-car_wash/blob/main/LICENSE.md
@@ -63,3 +69,5 @@ I put a lot of work into making this repo and component available and updated to
 [report_bug]: https://github.com/Limych/ha-car_wash/issues/new?template=bug_report.md
 [suggest_idea]: https://github.com/Limych/ha-car_wash/issues/new?template=feature_request.md
 [contributors]: https://github.com/Limych/ha-car_wash/graphs/contributors
+[patreon-shield]: https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3DLimych%26type%3Dpatrons&style=popout
+[patreon]: https://www.patreon.com/join/limych

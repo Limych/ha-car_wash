@@ -16,21 +16,66 @@ workdir="/workspaces/${workspace}"
 
 container="dev-${workspace}"
 port="127.0.0.1:9123:8123"
-image="ludeeus/container:integration-debian"
+image="ghcr.io/ludeeus/devcontainer/integration:stable"
 volume="${ROOT}:${workdir}"
 
-cmd="${1:-menu}"
+cmd="menu"
+while test $# -gt 0; do
+    case "${1}" in
+        --help|-h)
+            log.info "devcontainer [options] [command]"
+            log.info ""
+            log.info "Options:"
+            log.info "  -h, --help  Show this help."
+            log.info "  --public    Create dev container externally accessible"\
+                "(Only makes sense when creating a new container)."
+            log.info ""
+            log.info "Commands:"
+            log.info "  start           Start dev container."
+            log.info "  stop            Save current state of dev container and stop it."
+            log.info "  check           Run Home Assistant config check."
+            log.info "  set-version     Install a specific version of Home Assistant."
+            log.info "  upgrade         Upgrade Home Assistant to latest dev"\
+                "then run user's bootstrap script again."
+            log.info "  bootstrap       Run user's bootstrap script again."
+            log.info "  bash            Run command line into dev container."
+            log.info "  down            Destroy dev container."
+            die
+            ;;
+        --public)
+            log.info "Attention! The container is creating externally accessible."
+            port=$(echo "${port}" | sed "s/127.0.0.1/0.0.0.0/")
+            ;;
+        *)
+            cmd="${1}"
+            ;;
+    esac
+    shift
+done
 
 docker_start() {
-    tmp=$(echo "${port}" | cut -d":" -f-2)
-    tmp=$(${docker} ps | grep "${tmp}" | awk "{print \$NF}")
-    if [ -n "${tmp}" ] ; then
+    tmp=$(echo "${port}" | cut -d":" -f2)
+    tmp=$(${docker} ps | grep ":${tmp}" | awk "{print \$NF}")
+    if test -n "${tmp}" ; then
+        log.info "Stop container ${tmp}..."
+        ${docker} stop "${tmp}"
+    fi
+
+    tmp=$(${docker} ps | grep "${container}" | awk "{print \$NF}")
+    if test -n "${tmp}" ; then
         log.info "Stop container ${tmp}..."
         ${docker} stop "${tmp}"
     fi
 
     log.info "Start container..."
     ${docker} start "${container}"
+}
+
+bootstrap() {
+    if test -f "${ROOT}/.devcontainer/bootstrap.sh"; then
+        log.info "Execute bootstrap.sh..."
+        ${docker} exec -it -w "${workdir}" "${container}" .devcontainer/bootstrap.sh "$1"
+    fi
 }
 
 if ! ${docker} ps -a | grep -wq ${container} && [[ "${cmd}" != "down" ]]; then
@@ -41,6 +86,7 @@ if ! ${docker} ps -a | grep -wq ${container} && [[ "${cmd}" != "down" ]]; then
 
     log.info "Initialize container..."
     ${docker} exec -it -w "${workdir}" "${container}" container install
+    bootstrap "install"
 fi
 
 if [[ "${cmd}" == "menu" ]]; then
@@ -88,14 +134,22 @@ case "${cmd}" in
         log.info "Interactive mode..."
         ${docker} exec -it "${container}" bash
         ;;
+    "bootstrap" )
+        bootstrap "${cmd}"
+        ;;
     * )
         if ! ${docker} ps | grep -wq ${container}; then
             docker_start
         fi
         log.info "Send command '${cmd}' to container..."
         if [[ "${cmd}" == "start" ]]; then
-            log.info "After Home Assistant initialization you can access to system on http://localhost:9123/"
+            log.info "Note: After Home Assistant initialization you can access to system on http://localhost:9123/"
         fi
         ${docker} exec -it -w "${workdir}" "${container}" container "${cmd}"
+
+        if [[ "${cmd}" == "upgrade" || "${cmd}" == "update" \
+        || "${cmd}" == "install" || "${cmd}" == "reinstall" ]]; then
+            bootstrap "${cmd}"
+        fi
         ;;
 esac

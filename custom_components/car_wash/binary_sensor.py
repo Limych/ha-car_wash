@@ -10,17 +10,10 @@ https://github.com/Limych/ha-car_wash/
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Callable, Optional
 
 import voluptuous as vol
-
-try:
-    from homeassistant.components.binary_sensor import BinarySensorEntity
-except ImportError:  # pragma: no cover
-    from homeassistant.components.binary_sensor import (
-        BinarySensorDevice as BinarySensorEntity,
-    )
-
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.weather import (
     ATTR_FORECAST,
     ATTR_FORECAST_CONDITION,
@@ -30,11 +23,17 @@ from homeassistant.components.weather import (
     ATTR_FORECAST_TIME,
     ATTR_WEATHER_TEMPERATURE,
 )
-from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_START, TEMP_CELSIUS
+from homeassistant.const import (
+    CONF_NAME,
+    CONF_UNIQUE_ID,
+    EVENT_HOMEASSISTANT_START,
+    TEMP_CELSIUS,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_state_change
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.temperature import convert as convert_temperature
 
@@ -57,70 +56,64 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
         vol.Required(CONF_WEATHER): cv.entity_id,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         vol.Optional(CONF_DAYS, default=DEFAULT_DAYS): cv.positive_int,
+        vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
 )
 
 
 # pylint: disable=unused-argument
 async def async_setup_platform(
-    hass: HomeAssistant, config, async_add_entities, discovery_info=None
+    hass: HomeAssistant,
+    config: ConfigType,
+    async_add_entities: Callable,
+    discovery_info=None,
 ):
     """Set up the Car Wash sensor."""
     # Print startup message
     _LOGGER.info(STARTUP_MESSAGE)
 
-    name = config.get(CONF_NAME)
-    weather = config.get(CONF_WEATHER)
-    days = config.get(CONF_DAYS)
-
-    async_add_entities([CarWashBinarySensor(hass, name, weather, days)])
+    async_add_entities(
+        [
+            CarWashBinarySensor(
+                config.get(CONF_UNIQUE_ID),
+                config.get(CONF_NAME),
+                config.get(CONF_WEATHER),
+                config.get(CONF_DAYS),
+            )
+        ]
+    )
 
 
 class CarWashBinarySensor(BinarySensorEntity):
     """Implementation of an Car Wash binary sensor."""
 
-    def __init__(self, hass: HomeAssistant, friendly_name: str, weather_entity, days):
+    def __init__(
+        self,
+        unique_id: Optional[str],
+        friendly_name: str,
+        weather_entity: str,
+        days: int,
+    ):
         """Initialize the sensor."""
-        self._hass = hass
-        self._name = friendly_name
         self._weather_entity = weather_entity
         self._days = days
-        self._state = None
 
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return DOMAIN + "-" + str(self._weather_entity).split(".")[1]
-
-    @property
-    def should_poll(self):
-        """No polling needed."""
-        return False
-
-    @property
-    def device_class(self):
-        """Return the class of this device, from component DEVICE_CLASSES."""
-        return f"{DOMAIN}__"
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._name
+        self._attr_should_poll = False  # No polling needed
+        self._attr_name = friendly_name
+        self._attr_is_on = None
+        self._attr_icon = ICON
+        self._attr_device_class = f"{DOMAIN}__"
+        #
+        self._attr_unique_id = (
+            DOMAIN + "-" + str(self._weather_entity).split(".")[1]
+            if unique_id == "__legacy__"
+            else unique_id
+        )
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self._state is not None
-
-    @property
-    def is_on(self):
-        """Return True if sensor is on."""
-        return self._state
-
-    @property
-    def icon(self):
-        """Return the icon to use in the frontend, if any."""
-        return ICON
+        return self._attr_is_on is not None
 
     async def async_added_to_hass(self):
         """Register callbacks."""
@@ -136,12 +129,12 @@ class CarWashBinarySensor(BinarySensorEntity):
         def sensor_startup(event):
             """Update template on startup."""
             async_track_state_change(
-                self._hass, [self._weather_entity], sensor_state_listener
+                self.hass, [self._weather_entity], sensor_state_listener
             )
 
             self.async_schedule_update_ha_state(True)
 
-        self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
+        self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
     @staticmethod
     def _temp2c(temperature: Optional[float], temperature_unit: str) -> Optional[float]:
@@ -153,23 +146,23 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         return temperature
 
-    # pylint: disable=r0912,r0915
+    # pylint: disable=too-many-branches,too-many-statements
     async def async_update(self):
         """Update the sensor state."""
-        wdata = self._hass.states.get(self._weather_entity)
+        wdata = self.hass.states.get(self._weather_entity)
 
         if wdata is None:
             raise HomeAssistantError(
                 f"Unable to find an entity called {self._weather_entity}"
             )
 
-        tmpu = self._hass.config.units.temperature_unit
+        tmpu = self.hass.config.units.temperature_unit
         temp = wdata.attributes.get(ATTR_WEATHER_TEMPERATURE)
         cond = wdata.state
         forecast = wdata.attributes.get(ATTR_FORECAST)
 
         if forecast is None:
-            self._state = None
+            self._attr_is_on = None
             raise HomeAssistantError(
                 "Can't get forecast data! Are you sure it's the weather provider?"
             )
@@ -180,7 +173,7 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         if cond in BAD_CONDITIONS:
             _LOGGER.debug("Detected bad weather condition")
-            self._state = False
+            self._attr_is_on = False
             return
 
         today = dt_util.start_of_local_day()
@@ -220,11 +213,11 @@ class CarWashBinarySensor(BinarySensorEntity):
 
             if prec and prec != "null":
                 _LOGGER.debug("Precipitation detected")
-                self._state = False
+                self._attr_is_on = False
                 return
             if cond in BAD_CONDITIONS:
                 _LOGGER.debug("Detected bad weather condition")
-                self._state = False
+                self._attr_is_on = False
                 return
             if tmin is not None and fc_date != cur_date:
                 tmin = self._temp2c(tmin, tmpu)
@@ -232,7 +225,7 @@ class CarWashBinarySensor(BinarySensorEntity):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._state = False
+                    self._attr_is_on = False
                     return
                 temp = tmin
             if tmax is not None:
@@ -241,9 +234,9 @@ class CarWashBinarySensor(BinarySensorEntity):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._state = False
+                    self._attr_is_on = False
                     return
                 temp = tmax
 
         _LOGGER.debug("Inspection done. No bad forecast detected")
-        self._state = True
+        self._attr_is_on = True
