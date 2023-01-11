@@ -141,7 +141,6 @@ class CarWashBinarySensor(BinarySensorEntity):
         """Convert weather temperature to Celsius degree."""
         if temperature is not None and temperature_unit != UnitOfTemperature.CELSIUS:
             temperature = TemperatureConverter.convert(temperature, temperature_unit, UnitOfTemperature.CELSIUS)
-            
         return temperature
 
     # pylint: disable=too-many-branches,too-many-statements
