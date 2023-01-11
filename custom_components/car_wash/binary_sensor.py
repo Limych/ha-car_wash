@@ -27,7 +27,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_UNIQUE_ID,
     EVENT_HOMEASSISTANT_START,
-    TEMP_CELSIUS,
+    UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -35,7 +35,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
-from homeassistant.util.temperature import convert as convert_temperature
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import (
     BAD_CONDITIONS,
@@ -139,11 +139,8 @@ class CarWashBinarySensor(BinarySensorEntity):
     @staticmethod
     def _temp2c(temperature: Optional[float], temperature_unit: str) -> Optional[float]:
         """Convert weather temperature to Celsius degree."""
-        if temperature is not None and temperature_unit != TEMP_CELSIUS:
-            temperature = convert_temperature(
-                temperature, temperature_unit, TEMP_CELSIUS
-            )
-
+        if temperature is not None and temperature_unit != UnitOfTemperature.CELSIUS:
+            temperature = TemperatureConverter.convert(temperature, temperature_unit, UnitOfTemperature.CELSIUS)
         return temperature
 
     # pylint: disable=too-many-branches,too-many-statements
