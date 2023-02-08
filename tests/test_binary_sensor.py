@@ -1,6 +1,11 @@
 """The test for the binary sensor platform."""
 # pylint: disable=redefined-outer-name
 import pytest
+from pytest import raises
+from pytest_homeassistant_custom_component.common import assert_setup_component
+
+from custom_components.car_wash.binary_sensor import CarWashBinarySensor
+from custom_components.car_wash.const import CONF_WEATHER, DOMAIN, ICON
 from homeassistant.components.weather import (
     ATTR_CONDITION_RAINY,
     ATTR_CONDITION_SUNNY,
@@ -24,11 +29,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
-from pytest import raises
-from pytest_homeassistant_custom_component.common import assert_setup_component
-
-from custom_components.car_wash.binary_sensor import CarWashBinarySensor
-from custom_components.car_wash.const import CONF_WEATHER, DOMAIN, ICON
 
 TEST_UNIQUE_ID = "test_id"
 TEST_NAME = "test_name"
