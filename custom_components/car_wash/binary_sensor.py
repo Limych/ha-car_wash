@@ -16,7 +16,6 @@ import voluptuous as vol
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.weather import (
-    ATTR_FORECAST,
     ATTR_FORECAST_CONDITION,
     ATTR_FORECAST_PRECIPITATION,
     ATTR_FORECAST_TEMP,
@@ -37,6 +36,9 @@ from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
+
+from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
+from homeassistant.components.weather import SERVICE_GET_FORECASTS
 
 from .const import (
     BAD_CONDITIONS,
@@ -141,7 +143,9 @@ class CarWashBinarySensor(BinarySensorEntity):
     def _temp2c(temperature: Optional[float], temperature_unit: str) -> Optional[float]:
         """Convert weather temperature to Celsius degree."""
         if temperature is not None and temperature_unit != UnitOfTemperature.CELSIUS:
-            temperature = TemperatureConverter.convert(temperature, temperature_unit, UnitOfTemperature.CELSIUS)
+            temperature = TemperatureConverter.convert(
+                temperature, temperature_unit, UnitOfTemperature.CELSIUS
+            )
         return temperature
 
     # pylint: disable=too-many-branches,too-many-statements
@@ -157,7 +161,15 @@ class CarWashBinarySensor(BinarySensorEntity):
         tmpu = self.hass.config.units.temperature_unit
         temp = wdata.attributes.get(ATTR_WEATHER_TEMPERATURE)
         cond = wdata.state
-        forecast = wdata.attributes.get(ATTR_FORECAST)
+
+        daily_response = await self.hass.services.async_call(
+            WEATHER_DOMAIN,
+            SERVICE_GET_FORECASTS,
+            {"entity_id": self._weather_entity, "type": "daily"},
+            blocking=True,
+            return_response=True,
+        )
+        forecast = daily_response[self._weather_entity]["forecast"]
 
         if forecast is None:
             self._attr_is_on = None
@@ -185,7 +197,7 @@ class CarWashBinarySensor(BinarySensorEntity):
             fc_date = fcast.get(ATTR_FORECAST_TIME)
             if isinstance(fc_date, int):
                 fc_date = dt_util.as_local(
-                    datetime.utcfromtimestamp(fc_date / 1000)
+                    datetime.datetime.fromtimestamp(fc_date, tz=datetime.timezone.utc)
                 ).isoformat()
             elif isinstance(fc_date, datetime):
                 fc_date = dt_util.as_local(fc_date).isoformat()
