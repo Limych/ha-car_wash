@@ -22,6 +22,8 @@ from homeassistant.components.weather import (
     ATTR_FORECAST_TEMP_LOW,
     ATTR_FORECAST_TIME,
     ATTR_WEATHER_TEMPERATURE,
+    DOMAIN as WEATHER_DOMAIN,
+    SERVICE_GET_FORECASTS,
 )
 from homeassistant.const import (
     CONF_NAME,
@@ -36,9 +38,6 @@ from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
-
-from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
-from homeassistant.components.weather import SERVICE_GET_FORECASTS
 
 from .const import (
     BAD_CONDITIONS,
@@ -169,7 +168,15 @@ class CarWashBinarySensor(BinarySensorEntity):
             blocking=True,
             return_response=True,
         )
-        forecast = daily_response[self._weather_entity]["forecast"]
+        if not (isinstance(daily_response, dict)):
+            self._attr_is_on = None
+            raise HomeAssistantError("daily_response is empty.")
+        if (len(daily_response) == 0) or (
+            "forecast" in daily_response[self._weather_entity]
+        ):
+            forecast = daily_response[self._weather_entity]["forecast"]
+        else:
+            forecast = None
 
         if forecast is None:
             self._attr_is_on = None
@@ -197,7 +204,7 @@ class CarWashBinarySensor(BinarySensorEntity):
             fc_date = fcast.get(ATTR_FORECAST_TIME)
             if isinstance(fc_date, int):
                 fc_date = dt_util.as_local(
-                    datetime.datetime.fromtimestamp(fc_date, tz=datetime.timezone.utc)
+                    datetime.fromtimestamp(fc_date, tz=datetime.timezone.utc)
                 ).isoformat()
             elif isinstance(fc_date, datetime):
                 fc_date = dt_util.as_local(fc_date).isoformat()
