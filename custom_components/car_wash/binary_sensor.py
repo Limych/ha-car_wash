@@ -168,12 +168,9 @@ class CarWashBinarySensor(BinarySensorEntity):
             blocking=True,
             return_response=True,
         )
-        if not (isinstance(daily_response, dict)):
-            self._attr_is_on = None
-            raise HomeAssistantError("daily_response is empty.")
-        if (len(daily_response) == 0) or (
-            "forecast" in daily_response[self._weather_entity]
-        ):
+        if (not (isinstance(daily_response, dict))) or (len(daily_response) == 0):
+            forecast = None
+        elif "forecast" in daily_response[self._weather_entity]:
             forecast = daily_response[self._weather_entity]["forecast"]
         else:
             forecast = None
