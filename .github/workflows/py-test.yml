@@ -23,12 +23,12 @@ jobs:
           echo "package=$(ls -F | grep \/$ | grep -v "bin\|examples\|tests" | sed -n "s/\///g;1p")" >> $GITHUB_ENV
 
       - name: "Set up Python"
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version-file: 'pyproject.toml'
 
       - name: "Cache pip"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
@@ -63,21 +63,17 @@ jobs:
     name: "Test package"
     needs: lint
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 3
-      matrix:
-        python-version: ['3.9', '3.10', '3.11']
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version-file: 'pyproject.toml'
 
       - name: "Cache pip"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
@@ -104,25 +100,16 @@ jobs:
             echo '"""Stub."""' >custom_components/__init__.py
           fi
 
-      - name: "Run tests with pytest"
-        if: matrix.python-version != '3.11'
-        run: |
-          pytest --basetemp=$RUNNER_TEMP --durations=10 -n auto --dist=loadfile -qq -o console_output_style=count -p no:sugar
-          ./scripts/check_dirty
-
       - name: "Install Coveralls"
-        if: matrix.python-version == '3.11'
         run: |
           pip install pytest-xdist coveralls
 
       - name: "Run tests with pytest & Calculate coverage"
-        if: matrix.python-version == '3.11'
         run: |
           pytest --basetemp=$RUNNER_TEMP --durations=10 -n auto --dist=loadfile -qq -o console_output_style=count -p no:sugar --cov --cov-report=
           ./scripts/check_dirty
 
       - name: "Send coverage to Coveralls"
-        if: matrix.python-version == '3.11'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: coveralls --service=github
