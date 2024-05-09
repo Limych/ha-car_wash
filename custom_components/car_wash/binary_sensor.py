@@ -10,22 +10,26 @@ https://github.com/Limych/ha-car_wash/
 from collections.abc import Callable
 from datetime import datetime
 import logging
-from typing import Optional
 
 import voluptuous as vol
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.weather import (
-    ATTR_FORECAST,
     ATTR_FORECAST_CONDITION,
     ATTR_FORECAST_PRECIPITATION,
     ATTR_FORECAST_TEMP,
     ATTR_FORECAST_TEMP_LOW,
     ATTR_FORECAST_TIME,
     ATTR_WEATHER_TEMPERATURE,
+    DOMAIN as WEATHER_DOMAIN,
+    SERVICE_GET_FORECASTS,
+    WeatherEntityFeature,
 )
 from homeassistant.const import (
+    ATTR_SUPPORTED_FEATURES,
+    CONF_ENTITY_ID,
     CONF_NAME,
+    CONF_TYPE,
     CONF_UNIQUE_ID,
     EVENT_HOMEASSISTANT_START,
     UnitOfTemperature,
@@ -50,7 +54,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
 
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {
@@ -90,7 +93,7 @@ class CarWashBinarySensor(BinarySensorEntity):
 
     def __init__(
         self,
-        unique_id: Optional[str],
+        unique_id: str | None,
         friendly_name: str,
         weather_entity: str,
         days: int,
@@ -138,32 +141,50 @@ class CarWashBinarySensor(BinarySensorEntity):
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
     @staticmethod
-    def _temp2c(temperature: Optional[float], temperature_unit: str) -> Optional[float]:
+    def _temp2c(temperature: float | None, temperature_unit: str) -> float | None:
         """Convert weather temperature to Celsius degree."""
         if temperature is not None and temperature_unit != UnitOfTemperature.CELSIUS:
-            temperature = TemperatureConverter.convert(temperature, temperature_unit, UnitOfTemperature.CELSIUS)
+            temperature = TemperatureConverter.convert(
+                temperature, temperature_unit, UnitOfTemperature.CELSIUS
+            )
         return temperature
 
     # pylint: disable=too-many-branches,too-many-statements
     async def async_update(self):
         """Update the sensor state."""
-        wdata = self.hass.states.get(self._weather_entity)
-
-        if wdata is None:
+        wstate = self.hass.states.get(self._weather_entity)
+        if wstate is None:
             raise HomeAssistantError(
                 f"Unable to find an entity called {self._weather_entity}"
             )
 
         tmpu = self.hass.config.units.temperature_unit
-        temp = wdata.attributes.get(ATTR_WEATHER_TEMPERATURE)
-        cond = wdata.state
-        forecast = wdata.attributes.get(ATTR_FORECAST)
+        temp = wstate.attributes.get(ATTR_WEATHER_TEMPERATURE)
+        cond = wstate.state
 
-        if forecast is None:
+        wfeatures = wstate.attributes.get(ATTR_SUPPORTED_FEATURES)
+        if (
+            not isinstance(wfeatures, WeatherEntityFeature)
+            or (wfeatures & WeatherEntityFeature.FORECAST_DAILY) == 0
+        ):
+            raise HomeAssistantError("Weather entity doesn't support 'daily' forecast")
+
+        try:
+            forecast = await self.hass.services.async_call(
+                WEATHER_DOMAIN,
+                SERVICE_GET_FORECASTS,
+                {
+                    CONF_TYPE: "daily",
+                    CONF_ENTITY_ID: self._weather_entity,
+                },
+                blocking=True,
+                return_response=True,
+            )
+        except HomeAssistantError as ex:
             self._attr_is_on = None
             raise HomeAssistantError(
                 "Can't get forecast data! Are you sure it's the weather provider?"
-            )
+            ) from ex
 
         _LOGGER.debug("Current temperature %s, condition '%s'", temp, cond)
 
@@ -181,15 +202,14 @@ class CarWashBinarySensor(BinarySensorEntity):
         ).strftime("%F")
 
         _LOGGER.debug("Inspect weather forecast from now till %s", stop_date)
-        for fcast in forecast:
+        for fcast in forecast[self._weather_entity]["forecast"]:
             fc_date = fcast.get(ATTR_FORECAST_TIME)
             if isinstance(fc_date, int):
                 fc_date = dt_util.as_local(
-                    datetime.utcfromtimestamp(fc_date / 1000)
-                ).isoformat()
+                    datetime.fromtimestamp(fc_date / 1000, dt_util.UTC)
+                ).strftime("%F")
             elif isinstance(fc_date, datetime):
-                fc_date = dt_util.as_local(fc_date).isoformat()
-            fc_date = fc_date[:10]
+                fc_date = dt_util.as_local(fc_date).strftime("%F")
             if fc_date < cur_date:
                 continue
             if fc_date == stop_date:
