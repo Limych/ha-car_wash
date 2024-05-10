@@ -2,7 +2,7 @@
 
 # pylint: disable=redefined-outer-name
 from typing import Final
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest import raises
@@ -29,9 +29,10 @@ from homeassistant.components.weather import (
 from homeassistant.const import (
     ATTR_SUPPORTED_FEATURES,
     CONF_PLATFORM,
+    CONF_TYPE,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceRegistry, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
@@ -132,7 +133,7 @@ async def test_async_update_forecast_fail(hass: HomeAssistant, default_sensor):
         },
     )
 
-    with raises(HomeAssistantError, match="doesn't support 'daily' forecast"):
+    with raises(HomeAssistantError, match="doesn't support any forecast"):
         await default_sensor.async_update()
 
     hass.states.async_set(
@@ -144,32 +145,7 @@ async def test_async_update_forecast_fail(hass: HomeAssistant, default_sensor):
         },
     )
 
-    with raises(HomeAssistantError, match="doesn't support 'daily' forecast"):
-        await default_sensor.async_update()
-
-    hass.states.async_set(
-        MOCK_WEATHER_ENTITY,
-        "State",
-        attributes={
-            ATTR_WEATHER_TEMPERATURE: -1,
-            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_HOURLY,
-        },
-    )
-
-    with raises(HomeAssistantError, match="doesn't support 'daily' forecast"):
-        await default_sensor.async_update()
-
-    hass.states.async_set(
-        MOCK_WEATHER_ENTITY,
-        "State",
-        attributes={
-            ATTR_WEATHER_TEMPERATURE: -1,
-            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_HOURLY
-            | WeatherEntityFeature.FORECAST_DAILY,
-        },
-    )
-
-    with raises(HomeAssistantError, match="Can't get forecast data!"):
+    with raises(TypeError):
         await default_sensor.async_update()
 
 
@@ -186,6 +162,48 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     with raises(HomeAssistantError):
         await default_sensor.async_update()
+
+    hass.states.async_set(
+        MOCK_WEATHER_ENTITY,
+        "State",
+        attributes={
+            ATTR_WEATHER_TEMPERATURE: -1,
+            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_DAILY
+            | WeatherEntityFeature.FORECAST_TWICE_DAILY
+            | WeatherEntityFeature.FORECAST_HOURLY,
+        },
+    )
+
+    with patch.object(ServiceRegistry, "async_call") as call:
+        await default_sensor.async_update()
+        assert call.call_args.args[2][CONF_TYPE] == "daily"
+
+    hass.states.async_set(
+        MOCK_WEATHER_ENTITY,
+        "State",
+        attributes={
+            ATTR_WEATHER_TEMPERATURE: -1,
+            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_TWICE_DAILY
+            | WeatherEntityFeature.FORECAST_HOURLY,
+        },
+    )
+
+    with patch.object(ServiceRegistry, "async_call") as call:
+        await default_sensor.async_update()
+        assert call.call_args.args[2][CONF_TYPE] == "twice_daily"
+
+    hass.states.async_set(
+        MOCK_WEATHER_ENTITY,
+        "State",
+        attributes={
+            ATTR_WEATHER_TEMPERATURE: -1,
+            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_HOURLY,
+        },
+    )
+
+    with patch.object(ServiceRegistry, "async_call") as call:
+        await default_sensor.async_update()
+        assert call.call_args.args[2][CONF_TYPE] == "hourly"
 
     today = dt_util.start_of_local_day()
     today_ts = int(today.timestamp() * 1000)
