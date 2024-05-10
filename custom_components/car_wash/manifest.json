@@ -12,5 +12,5 @@
     "iot_class": "calculated",
     "issue_tracker": "https://github.com/Limych/ha-car_wash/issues",
     "requirements": [],
-    "version": "1.5.7-alpha"
+    "version": "1.5.7"
 }
