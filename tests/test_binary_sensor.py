@@ -5,14 +5,6 @@ from typing import Final
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pytest import raises
-from pytest_homeassistant_custom_component.common import async_mock_service
-
-from custom_components.car_wash.binary_sensor import (
-    CarWashBinarySensor,
-    async_setup_platform,
-)
-from custom_components.car_wash.const import CONF_WEATHER, DOMAIN, ICON
 from homeassistant.components.weather import (
     ATTR_CONDITION_RAINY,
     ATTR_CONDITION_SUNNY,
@@ -22,9 +14,11 @@ from homeassistant.components.weather import (
     ATTR_FORECAST_TEMP_LOW,
     ATTR_FORECAST_TIME,
     ATTR_WEATHER_TEMPERATURE,
-    DOMAIN as WEATHER_DOMAIN,
     SERVICE_GET_FORECASTS,
     WeatherEntityFeature,
+)
+from homeassistant.components.weather import (
+    DOMAIN as WEATHER_DOMAIN,
 )
 from homeassistant.const import (
     ATTR_SUPPORTED_FEATURES,
@@ -35,6 +29,13 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, ServiceRegistry, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_mock_service
+
+from custom_components.car_wash.binary_sensor import (
+    CarWashBinarySensor,
+    async_setup_platform,
+)
+from custom_components.car_wash.const import CONF_WEATHER, DOMAIN, ICON
 
 MOCK_ENTITY: Final = DOMAIN + ".test"
 MOCK_UNIQUE_ID: Final = "test_id"
@@ -49,7 +50,7 @@ MOCK_CONFIG: Final = {
 }
 
 
-@pytest.fixture()
+@pytest.fixture
 def default_sensor(hass: HomeAssistant):
     """Create an AverageSensor with default values."""
     entity = CarWashBinarySensor(
@@ -60,7 +61,7 @@ def default_sensor(hass: HomeAssistant):
 
 
 @pytest.mark.parametrize(
-    "uid, expected_uid",
+    ("uid", "expected_uid"),
     [
         (None, None),
         ("__legacy__", DOMAIN + "-" + MOCK_WEATHER_ENTITY_NAME),
@@ -90,7 +91,7 @@ async def test_async_setup_platform(hass: HomeAssistant):
 
 # pylint: disable=protected-access
 @pytest.mark.parametrize(
-    "temp1, temp2",
+    ("temp1", "temp2"),
     [(0, -17.78), (10, -12.22), (20, -6.67), (30, -1.11), (40, 4.44), (50, 10)],
 )
 async def test__temp2c(temp1, temp2):
@@ -109,7 +110,7 @@ async def test_async_update_fail(hass: HomeAssistant):
         MOCK_UNIQUE_ID, MOCK_NAME, WEATHER_DOMAIN + ".nonexistent", MOCK_DAYS
     )
     entity.hass = hass
-    with raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError):
         await entity.async_update()
 
 
@@ -122,7 +123,7 @@ async def test_async_update_forecast_fail(hass: HomeAssistant, default_sensor):
         supports_response=SupportsResponse.OPTIONAL,
     )
 
-    with raises(HomeAssistantError, match="Unable to find an entity"):
+    with pytest.raises(HomeAssistantError, match="Unable to find an entity"):
         await default_sensor.async_update()
 
     hass.states.async_set(
@@ -133,7 +134,7 @@ async def test_async_update_forecast_fail(hass: HomeAssistant, default_sensor):
         },
     )
 
-    with raises(HomeAssistantError, match="doesn't support any forecast"):
+    with pytest.raises(HomeAssistantError, match="doesn't support any forecast"):
         await default_sensor.async_update()
 
     hass.states.async_set(
@@ -145,7 +146,7 @@ async def test_async_update_forecast_fail(hass: HomeAssistant, default_sensor):
         },
     )
 
-    with raises(TypeError):
+    with pytest.raises(TypeError):
         await default_sensor.async_update()
 
 
@@ -155,12 +156,12 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     hass.states.async_set(MOCK_WEATHER_ENTITY, None)
 
-    with raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError):
         await default_sensor.async_update()
 
     hass.states.async_set(MOCK_WEATHER_ENTITY, "State")
 
-    with raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError):
         await default_sensor.async_update()
 
     hass.states.async_set(
