@@ -1,5 +1,10 @@
 default_config:
 
+# https://www.home-assistant.io/integrations/homeassistant/
+homeassistant:
+  debug: true
+
+# https://www.home-assistant.io/integrations/logger/
 logger:
   default: info
   logs:
