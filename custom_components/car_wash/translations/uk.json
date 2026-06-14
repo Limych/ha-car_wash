@@ -6,7 +6,8 @@
         "forecast_bad_condition": "Погодні умови {condition} прогнозуються на {date}",
         "forecast_freezing_rise": "На {date} прогнозується підвищення температури вище нуля",
         "forecast_precipitation": "На {date} прогнозуються опади",
-        "forecast_unavailable": "Дані прогнозу недоступні"
+        "forecast_unavailable": "Дані прогнозу недоступні",
+        "summary": "Зараз не найкращий час мити автомобіль, тому що {reasons}."
       }
     }
   }

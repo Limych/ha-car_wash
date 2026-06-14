@@ -10,7 +10,7 @@ https://github.com/Limych/ha-car_wash/
 
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import voluptuous as vol
@@ -73,11 +73,8 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
 )
 
 
-def _load_reason_translations(language: str) -> dict[str, str]:
+def _load_reason_translations_from_disk(language: str) -> dict[str, str]:
     """Load translated reason strings."""
-    if language in _TRANSLATION_CACHE:
-        return _TRANSLATION_CACHE[language]
-
     path = Path(__file__).with_name("translations") / f"{language}.json"
     if not path.exists() and "-" in language:
         path = (
@@ -98,21 +95,51 @@ def _load_reason_translations(language: str) -> dict[str, str]:
     return translations
 
 
-def _translate_reason(
+async def _async_load_reason_translations(
+    hass: HomeAssistant, language: str
+) -> dict[str, str]:
+    """Load translated reason strings without blocking the event loop."""
+    if language in _TRANSLATION_CACHE:
+        return _TRANSLATION_CACHE[language]
+
+    return await hass.async_add_executor_job(
+        _load_reason_translations_from_disk, language
+    )
+
+
+async def _async_translate_reason(
     hass: HomeAssistant, key: str, placeholders: dict[str, str] | None = None
 ) -> str:
     """Return a translated reason string."""
     placeholders = placeholders or {}
     language = hass.config.language or "en"
-    translations = _load_reason_translations(language)
+    translations = await _async_load_reason_translations(hass, language)
     template = translations.get(key)
 
     if template is None and language != "en":
-        template = _load_reason_translations("en").get(key)
+        template = (await _async_load_reason_translations(hass, "en")).get(key)
     if template is None:
         template = key
 
     return template.format(**placeholders)
+
+
+def _format_reason_date(date_value: date | datetime | str) -> str:
+    """Format a date for readable reason text."""
+    if isinstance(date_value, datetime):
+        date_value = date_value.date()
+    elif isinstance(date_value, str):
+        try:
+            date_value = datetime.fromisoformat(date_value).date()
+        except ValueError:
+            return date_value
+
+    return date_value.strftime("%d %B %Y").lstrip("0")
+
+
+def _format_reason_list(reasons: list[str]) -> str:
+    """Format reason details for a single sentence summary."""
+    return "; ".join(reason[0].lower() + reason[1:] for reason in reasons)
 
 
 # pylint: disable=unused-argument
@@ -204,13 +231,16 @@ class CarWashBinarySensor(BinarySensorEntity):
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
     def _set_state(
-        self, is_on: bool | None, reasons: list[str] | None = None
+        self,
+        is_on: bool | None,
+        reasons: list[str] | None = None,
+        reason: str | None = None,
     ) -> None:
         """Set state and reason attribute."""
         reasons = reasons or []
         self._attr_is_on = is_on
         self._attr_extra_state_attributes = {
-            ATTR_REASON: "; ".join(reasons) if reasons else None,
+            ATTR_REASON: reason,
             ATTR_REASONS: reasons,
         }
 
@@ -228,6 +258,17 @@ class CarWashBinarySensor(BinarySensorEntity):
                 temperature, temperature_unit, UnitOfTemperature.CELSIUS
             )
         return temperature
+
+    @staticmethod
+    def _rises_above_freezing(
+        previous_temp: float | None, next_temp: float | None
+    ) -> bool:
+        """Return if temperature crosses from below freezing to above freezing."""
+        return (
+            previous_temp is not None
+            and next_temp is not None
+            and previous_temp < 0 <= next_temp
+        )
 
     # pylint: disable=too-many-branches,too-many-statements
     async def async_update(self) -> None:  # noqa: PLR0912, PLR0915
@@ -264,14 +305,20 @@ class CarWashBinarySensor(BinarySensorEntity):
                 return_response=True,
             )
         except HomeAssistantError as ex:
+            reasons = [
+                await _async_translate_reason(
+                    self.hass,
+                    "forecast_unavailable",
+                )
+            ]
             self._set_state(
                 None,
-                [
-                    _translate_reason(
-                        self.hass,
-                        "forecast_unavailable",
-                    )
-                ],
+                reasons,
+                await _async_translate_reason(
+                    self.hass,
+                    "summary",
+                    {"reasons": _format_reason_list(reasons)},
+                ),
             )
             msg = "Can't get forecast data! Are you sure it's the weather provider?"
             raise HomeAssistantError(msg) from ex
@@ -286,7 +333,7 @@ class CarWashBinarySensor(BinarySensorEntity):
             _LOGGER.debug("Detected bad weather condition")
             self._add_reason(
                 reasons,
-                _translate_reason(
+                await _async_translate_reason(
                     self.hass,
                     "current_bad_condition",
                     {"condition": cond},
@@ -304,11 +351,17 @@ class CarWashBinarySensor(BinarySensorEntity):
         for fcast in forecast[self._weather_entity]["forecast"]:
             fc_date = fcast.get(ATTR_FORECAST_TIME)
             if isinstance(fc_date, int):
-                fc_date = dt_util.as_local(
+                fc_datetime = dt_util.as_local(
                     datetime.fromtimestamp(fc_date / 1000, dt_util.UTC)
-                ).strftime("%F")
+                )
+                fc_date = fc_datetime.strftime("%F")
+                fc_date_label = _format_reason_date(fc_datetime)
             elif isinstance(fc_date, datetime):
-                fc_date = dt_util.as_local(fc_date).strftime("%F")
+                fc_datetime = dt_util.as_local(fc_date)
+                fc_date = fc_datetime.strftime("%F")
+                fc_date_label = _format_reason_date(fc_datetime)
+            else:
+                fc_date_label = _format_reason_date(fc_date)
             if fc_date < cur_date:
                 continue
             if fc_date == stop_date:
@@ -332,56 +385,64 @@ class CarWashBinarySensor(BinarySensorEntity):
                 _LOGGER.debug("Precipitation detected")
                 self._add_reason(
                     reasons,
-                    _translate_reason(
+                    await _async_translate_reason(
                         self.hass,
                         "forecast_precipitation",
-                        {"date": fc_date},
+                        {"date": fc_date_label},
                     ),
                 )
             if cond in BAD_CONDITIONS:
                 _LOGGER.debug("Detected bad weather condition")
                 self._add_reason(
                     reasons,
-                    _translate_reason(
+                    await _async_translate_reason(
                         self.hass,
                         "forecast_bad_condition",
-                        {"condition": cond, "date": fc_date},
+                        {"condition": cond, "date": fc_date_label},
                     ),
                 )
             if tmin is not None and fc_date != cur_date:
                 tmin = self._temp2c(tmin, tmpu)
-                if temp < 0 <= tmin:
+                if self._rises_above_freezing(temp, tmin):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
                     self._add_reason(
                         reasons,
-                        _translate_reason(
+                        await _async_translate_reason(
                             self.hass,
                             "forecast_freezing_rise",
-                            {"date": fc_date},
+                            {"date": fc_date_label},
                         ),
                     )
                 temp = tmin
             if tmax is not None:
                 tmax = self._temp2c(tmax, tmpu)
-                if temp < 0 <= tmax:
+                if self._rises_above_freezing(temp, tmax):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
                     self._add_reason(
                         reasons,
-                        _translate_reason(
+                        await _async_translate_reason(
                             self.hass,
                             "forecast_freezing_rise",
-                            {"date": fc_date},
+                            {"date": fc_date_label},
                         ),
                     )
                 temp = tmax
 
         if reasons:
             _LOGGER.debug("Inspection done. Bad forecast detected")
-            self._set_state(False, reasons)
+            self._set_state(
+                False,
+                reasons,
+                await _async_translate_reason(
+                    self.hass,
+                    "summary",
+                    {"reasons": _format_reason_list(reasons)},
+                ),
+            )
             return
 
         _LOGGER.debug("Inspection done. No bad forecast detected")

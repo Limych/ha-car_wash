@@ -39,7 +39,8 @@
         "forecast_bad_condition": "Weather condition {condition} is forecast for {date}",
         "forecast_freezing_rise": "Temperature is forecast to rise above freezing on {date}",
         "forecast_precipitation": "Precipitation is forecast for {date}",
-        "forecast_unavailable": "Forecast data is unavailable"
+        "forecast_unavailable": "Forecast data is unavailable",
+        "summary": "It is not a good time to wash the car because {reasons}."
       }
     }
   }

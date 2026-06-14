@@ -6,7 +6,8 @@
         "forecast_bad_condition": "Stan pogody {condition} jest prognozowany na {date}",
         "forecast_freezing_rise": "Prognozowany jest wzrost temperatury powyżej zera w dniu {date}",
         "forecast_precipitation": "Prognozowane są opady na {date}",
-        "forecast_unavailable": "Dane prognozy są niedostępne"
+        "forecast_unavailable": "Dane prognozy są niedostępne",
+        "summary": "To nie jest dobry moment na mycie samochodu, ponieważ {reasons}."
       }
     }
   }

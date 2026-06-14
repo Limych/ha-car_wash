@@ -39,7 +39,8 @@
         "forecast_bad_condition": "Weersomstandigheid {condition} wordt voorspeld voor {date}",
         "forecast_freezing_rise": "De temperatuur wordt voorspeld boven het vriespunt te stijgen op {date}",
         "forecast_precipitation": "Neerslag wordt voorspeld voor {date}",
-        "forecast_unavailable": "Voorspellingsgegevens zijn niet beschikbaar"
+        "forecast_unavailable": "Voorspellingsgegevens zijn niet beschikbaar",
+        "summary": "Het is geen goed moment om de auto te wassen omdat {reasons}."
       }
     }
   }

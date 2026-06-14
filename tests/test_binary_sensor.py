@@ -57,6 +57,20 @@ MOCK_CONFIG: Final = {
 }
 
 
+def _readable_date(value):
+    """Return the readable reason date."""
+    return value.strftime("%d %B %Y").lstrip("0")
+
+
+def _reason_summary(reasons):
+    """Return the expected reason summary."""
+    return (
+        "It is not a good time to wash the car because "
+        + "; ".join(reason[0].lower() + reason[1:] for reason in reasons)
+        + "."
+    )
+
+
 @pytest.fixture
 def default_sensor(hass: HomeAssistant):
     """Create an AverageSensor with default values."""
@@ -110,6 +124,14 @@ async def test__temp2c(temp1, temp2):
         == temp2
     )
     assert CarWashBinarySensor._temp2c(None, UnitOfTemperature.CELSIUS) is None
+
+
+async def test__rises_above_freezing():
+    """Test freezing transition detection handles missing temperatures."""
+    assert CarWashBinarySensor._rises_above_freezing(None, 1) is False
+    assert CarWashBinarySensor._rises_above_freezing(-1, None) is False
+    assert CarWashBinarySensor._rises_above_freezing(-1, 1) is True
+    assert CarWashBinarySensor._rises_above_freezing(1, 2) is False
 
 
 async def test_async_update_fail(hass: HomeAssistant):
@@ -235,13 +257,13 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     await default_sensor.async_update()
     assert default_sensor.is_on is False
-    assert (
-        default_sensor.extra_state_attributes[ATTR_REASON]
-        == f"Current weather condition is {ATTR_CONDITION_RAINY}"
-    )
-    assert default_sensor.extra_state_attributes[ATTR_REASONS] == [
+    expected_reasons = [
         f"Current weather condition is {ATTR_CONDITION_RAINY}"
     ]
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
+        expected_reasons
+    )
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
 
     hass.states.async_set(
         MOCK_WEATHER_ENTITY,
@@ -304,13 +326,13 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     await default_sensor.async_update()
     assert default_sensor.is_on is False
-    assert (
-        default_sensor.extra_state_attributes[ATTR_REASON]
-        == today.strftime("Precipitation is forecast for %F")
-    )
-    assert default_sensor.extra_state_attributes[ATTR_REASONS] == [
-        today.strftime("Precipitation is forecast for %F")
+    expected_reasons = [
+        f"Precipitation is forecast for {_readable_date(today)}"
     ]
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
+        expected_reasons
+    )
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
 
     hass.states.async_set(
         MOCK_WEATHER_ENTITY,
@@ -338,15 +360,14 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     await default_sensor.async_update()
     assert default_sensor.is_on is False
-    assert (
-        default_sensor.extra_state_attributes[ATTR_REASON]
-        == today.strftime(
-            f"Weather condition {ATTR_CONDITION_RAINY} is forecast for %F"
-        )
-    )
-    assert default_sensor.extra_state_attributes[ATTR_REASONS] == [
-        today.strftime(f"Weather condition {ATTR_CONDITION_RAINY} is forecast for %F")
+    expected_reasons = [
+        f"Weather condition {ATTR_CONDITION_RAINY} is forecast for "
+        f"{_readable_date(today)}"
     ]
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
+        expected_reasons
+    )
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
 
     hass.states.async_set(
         MOCK_WEATHER_ENTITY,
@@ -382,17 +403,14 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     await default_sensor.async_update()
     assert default_sensor.is_on is False
-    assert (
-        default_sensor.extra_state_attributes[ATTR_REASON]
-        == (today + timedelta(days=2)).strftime(
-            "Temperature is forecast to rise above freezing on %F"
-        )
-    )
-    assert default_sensor.extra_state_attributes[ATTR_REASONS] == [
-        (today + timedelta(days=2)).strftime(
-            "Temperature is forecast to rise above freezing on %F"
-        )
+    expected_reasons = [
+        "Temperature is forecast to rise above freezing on "
+        f"{_readable_date(today + timedelta(days=2))}"
     ]
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
+        expected_reasons
+    )
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
 
     hass.states.async_set(
         MOCK_WEATHER_ENTITY,
@@ -423,17 +441,14 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
 
     await default_sensor.async_update()
     assert default_sensor.is_on is False
-    assert (
-        default_sensor.extra_state_attributes[ATTR_REASON]
-        == (today + timedelta(days=1)).strftime(
-            "Temperature is forecast to rise above freezing on %F"
-        )
-    )
-    assert default_sensor.extra_state_attributes[ATTR_REASONS] == [
-        (today + timedelta(days=1)).strftime(
-            "Temperature is forecast to rise above freezing on %F"
-        )
+    expected_reasons = [
+        "Temperature is forecast to rise above freezing on "
+        f"{_readable_date(today + timedelta(days=1))}"
     ]
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
+        expected_reasons
+    )
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
 
     hass.states.async_set(
         MOCK_WEATHER_ENTITY,
@@ -467,14 +482,42 @@ async def test_async_update(hass: HomeAssistant, default_sensor):
     await default_sensor.async_update()
     expected_reasons = [
         f"Current weather condition is {ATTR_CONDITION_RAINY}",
-        today.strftime("Precipitation is forecast for %F"),
-        today.strftime(f"Weather condition {ATTR_CONDITION_RAINY} is forecast for %F"),
-        (today + timedelta(days=1)).strftime(
-            "Temperature is forecast to rise above freezing on %F"
-        ),
+        f"Precipitation is forecast for {_readable_date(today)}",
+        f"Weather condition {ATTR_CONDITION_RAINY} is forecast for "
+        f"{_readable_date(today)}",
+        "Temperature is forecast to rise above freezing on "
+        f"{_readable_date(today + timedelta(days=1))}",
     ]
     assert default_sensor.is_on is False
-    assert default_sensor.extra_state_attributes[ATTR_REASON] == "; ".join(
+    assert default_sensor.extra_state_attributes[ATTR_REASON] == _reason_summary(
         expected_reasons
     )
     assert default_sensor.extra_state_attributes[ATTR_REASONS] == expected_reasons
+
+    hass.states.async_set(
+        MOCK_WEATHER_ENTITY,
+        ATTR_CONDITION_SUNNY,
+        attributes={
+            ATTR_SUPPORTED_FEATURES: WeatherEntityFeature.FORECAST_DAILY,
+        },
+    )
+    async_mock_service(
+        hass,
+        WEATHER_DOMAIN,
+        SERVICE_GET_FORECASTS,
+        response={
+            MOCK_WEATHER_ENTITY: {
+                "forecast": [
+                    {
+                        ATTR_FORECAST_TIME: today,
+                        ATTR_FORECAST_TEMP: 1,
+                    },
+                ]
+            }
+        },
+    )
+
+    await default_sensor.async_update()
+    assert default_sensor.is_on is True
+    assert default_sensor.extra_state_attributes[ATTR_REASON] is None
+    assert default_sensor.extra_state_attributes[ATTR_REASONS] == []

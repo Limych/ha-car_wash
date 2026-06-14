@@ -94,7 +94,7 @@ When configured from the UI, these settings can be changed later from Settings >
   _(positive integer) (Optional) (Default value: 2)_\
   The number of days how far forward the sensor looks for the weather forecast.
 
-The sensor also exposes `reason` and `reasons` attributes. They are `null` and `[]` when washing looks OK. When the sensor says it is not a good time to wash the car, `reason` contains a readable summary and `reasons` contains all detected reasons as a list.
+The sensor also exposes `reason` and `reasons` attributes. `reason` is `null` and `reasons` is `[]` when washing looks OK. When the sensor says it is not a good time to wash the car, `reason` contains a readable one-sentence summary and `reasons` contains all detected reasons as a list.
 
 ## Usage examples
 

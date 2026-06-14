@@ -6,7 +6,8 @@
         "forecast_bad_condition": "Die Wetterbedingung {condition} ist für {date} vorhergesagt",
         "forecast_freezing_rise": "Die Temperatur soll am {date} über den Gefrierpunkt steigen",
         "forecast_precipitation": "Niederschlag ist für {date} vorhergesagt",
-        "forecast_unavailable": "Vorhersagedaten sind nicht verfügbar"
+        "forecast_unavailable": "Vorhersagedaten sind nicht verfügbar",
+        "summary": "Es ist kein guter Zeitpunkt zum Autowaschen, weil {reasons}."
       }
     }
   }
