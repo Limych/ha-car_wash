@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "reason": {
+        "current_bad_condition": "Текущие погодные условия: {condition}",
+        "forecast_bad_condition": "Погодные условия {condition} прогнозируются на {date}",
+        "forecast_freezing_rise": "На {date} прогнозируется повышение температуры выше нуля",
+        "forecast_precipitation": "На {date} прогнозируются осадки",
+        "forecast_unavailable": "Данные прогноза недоступны",
+        "summary": "Сейчас не лучшее время для мойки автомобиля, потому что {reasons}."
+      }
+    }
+  }
+}

@@ -39,6 +39,10 @@ If you have ANY issues with this you need to open an issue here:
 # Icons
 ICON: Final = "mdi:car-wash"
 
+# Attributes
+ATTR_REASON: Final = "reason"
+ATTR_REASONS: Final = "reasons"
+
 # Configuration and options
 CONF_WEATHER: Final = "weather"
 CONF_DAYS: Final = "days"

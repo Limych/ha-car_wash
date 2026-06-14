@@ -8,8 +8,10 @@ For more details about this platform, please refer to the documentation at
 https://github.com/Limych/ha-car_wash/
 """
 
+import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
+from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -26,6 +28,7 @@ from homeassistant.components.weather import (
 from homeassistant.components.weather import (
     DOMAIN as WEATHER_DOMAIN,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_SUPPORTED_FEATURES,
     CONF_ENTITY_ID,
@@ -45,6 +48,8 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import (
+    ATTR_REASON,
+    ATTR_REASONS,
     BAD_CONDITIONS,
     CONF_DAYS,
     CONF_WEATHER,
@@ -56,6 +61,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_TRANSLATION_CACHE: dict[str, dict[str, str]] = {}
 
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {
@@ -65,6 +71,75 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
 )
+
+
+def _load_reason_translations_from_disk(language: str) -> dict[str, str]:
+    """Load translated reason strings."""
+    path = Path(__file__).with_name("translations") / f"{language}.json"
+    if not path.exists() and "-" in language:
+        path = (
+            Path(__file__).with_name("translations")
+            / f"{language.split('-', 1)[0]}.json"
+        )
+    if not path.exists():
+        path = Path(__file__).with_name("translations") / "en.json"
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        _LOGGER.warning("Unable to load Car Wash translations for %s", language)
+        data = {}
+
+    translations = data.get("entity", {}).get("binary_sensor", {}).get("reason", {})
+    _TRANSLATION_CACHE[language] = translations
+    return translations
+
+
+async def _async_load_reason_translations(
+    hass: HomeAssistant, language: str
+) -> dict[str, str]:
+    """Load translated reason strings without blocking the event loop."""
+    if language in _TRANSLATION_CACHE:
+        return _TRANSLATION_CACHE[language]
+
+    return await hass.async_add_executor_job(
+        _load_reason_translations_from_disk, language
+    )
+
+
+async def _async_translate_reason(
+    hass: HomeAssistant, key: str, placeholders: dict[str, str] | None = None
+) -> str:
+    """Return a translated reason string."""
+    placeholders = placeholders or {}
+    language = hass.config.language or "en"
+    translations = await _async_load_reason_translations(hass, language)
+    template = translations.get(key)
+
+    if template is None and language != "en":
+        template = (await _async_load_reason_translations(hass, "en")).get(key)
+    if template is None:
+        template = key
+
+    return template.format(**placeholders)
+
+
+def _format_reason_date(date_value: date | datetime | str) -> str:
+    """Format a date for readable reason text."""
+    if isinstance(date_value, datetime):
+        date_value = date_value.date()
+    elif isinstance(date_value, str):
+        try:
+            date_value = datetime.fromisoformat(date_value).date()
+        except ValueError:
+            return date_value
+
+    return date_value.strftime("%d %B %Y").lstrip("0")
+
+
+def _format_reason_list(reasons: list[str]) -> str:
+    """Format reason details for a single sentence summary."""
+    return "; ".join(reason[0].lower() + reason[1:] for reason in reasons)
 
 
 # pylint: disable=unused-argument
@@ -78,15 +153,27 @@ async def async_setup_platform(
     # Print startup message
     _LOGGER.info(STARTUP_MESSAGE)
 
-    async_add_entities(
-        [
-            CarWashBinarySensor(
-                config.get(CONF_UNIQUE_ID),
-                config.get(CONF_NAME),
-                config.get(CONF_WEATHER),
-                config.get(CONF_DAYS),
-            )
-        ]
+    async_add_entities([_create_entity(config)])
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,  # noqa: ARG001
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the Car Wash sensor from a config entry."""
+    _LOGGER.info(STARTUP_MESSAGE)
+
+    async_add_entities([_create_entity({**entry.data, **entry.options})])
+
+
+def _create_entity(config: ConfigType) -> "CarWashBinarySensor":
+    """Create the Car Wash binary sensor entity."""
+    return CarWashBinarySensor(
+        config.get(CONF_UNIQUE_ID),
+        config.get(CONF_NAME),
+        config.get(CONF_WEATHER),
+        int(config.get(CONF_DAYS)),
     )
 
 
@@ -109,6 +196,7 @@ class CarWashBinarySensor(BinarySensorEntity):
         self._attr_is_on = None
         self._attr_icon = ICON
         self._attr_device_class = f"{DOMAIN}__"
+        self._attr_extra_state_attributes = {ATTR_REASON: None, ATTR_REASONS: []}
         #
         self._attr_unique_id = (
             DOMAIN + "-" + str(self._weather_entity).split(".")[1]
@@ -142,6 +230,26 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
+    def _set_state(
+        self,
+        is_on: bool | None,
+        reasons: list[str] | None = None,
+        reason: str | None = None,
+    ) -> None:
+        """Set state and reason attribute."""
+        reasons = reasons or []
+        self._attr_is_on = is_on
+        self._attr_extra_state_attributes = {
+            ATTR_REASON: reason,
+            ATTR_REASONS: reasons,
+        }
+
+    @staticmethod
+    def _add_reason(reasons: list[str], reason: str) -> None:
+        """Add a reason once while preserving detection order."""
+        if reason not in reasons:
+            reasons.append(reason)
+
     @staticmethod
     def _temp2c(temperature: float | None, temperature_unit: str) -> float | None:
         """Convert weather temperature to Celsius degree."""
@@ -150,6 +258,17 @@ class CarWashBinarySensor(BinarySensorEntity):
                 temperature, temperature_unit, UnitOfTemperature.CELSIUS
             )
         return temperature
+
+    @staticmethod
+    def _rises_above_freezing(
+        previous_temp: float | None, next_temp: float | None
+    ) -> bool:
+        """Return if temperature crosses from below freezing to above freezing."""
+        return (
+            previous_temp is not None
+            and next_temp is not None
+            and previous_temp < 0 <= next_temp
+        )
 
     # pylint: disable=too-many-branches,too-many-statements
     async def async_update(self) -> None:  # noqa: PLR0912, PLR0915
@@ -186,7 +305,21 @@ class CarWashBinarySensor(BinarySensorEntity):
                 return_response=True,
             )
         except HomeAssistantError as ex:
-            self._attr_is_on = None
+            reasons = [
+                await _async_translate_reason(
+                    self.hass,
+                    "forecast_unavailable",
+                )
+            ]
+            self._set_state(
+                None,
+                reasons,
+                await _async_translate_reason(
+                    self.hass,
+                    "summary",
+                    {"reasons": _format_reason_list(reasons)},
+                ),
+            )
             msg = "Can't get forecast data! Are you sure it's the weather provider?"
             raise HomeAssistantError(msg) from ex
 
@@ -194,10 +327,18 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         temp = self._temp2c(temp, tmpu)
 
+        reasons: list[str] = []
+
         if cond in BAD_CONDITIONS:
             _LOGGER.debug("Detected bad weather condition")
-            self._attr_is_on = False
-            return
+            self._add_reason(
+                reasons,
+                await _async_translate_reason(
+                    self.hass,
+                    "current_bad_condition",
+                    {"condition": cond},
+                ),
+            )
 
         today = dt_util.start_of_local_day()
         cur_date = today.strftime("%F")
@@ -210,11 +351,17 @@ class CarWashBinarySensor(BinarySensorEntity):
         for fcast in forecast[self._weather_entity]["forecast"]:
             fc_date = fcast.get(ATTR_FORECAST_TIME)
             if isinstance(fc_date, int):
-                fc_date = dt_util.as_local(
+                fc_datetime = dt_util.as_local(
                     datetime.fromtimestamp(fc_date / 1000, dt_util.UTC)
-                ).strftime("%F")
+                )
+                fc_date = fc_datetime.strftime("%F")
+                fc_date_label = _format_reason_date(fc_datetime)
             elif isinstance(fc_date, datetime):
-                fc_date = dt_util.as_local(fc_date).strftime("%F")
+                fc_datetime = dt_util.as_local(fc_date)
+                fc_date = fc_datetime.strftime("%F")
+                fc_date_label = _format_reason_date(fc_datetime)
+            else:
+                fc_date_label = _format_reason_date(fc_date)
             if fc_date < cur_date:
                 continue
             if fc_date == stop_date:
@@ -236,30 +383,67 @@ class CarWashBinarySensor(BinarySensorEntity):
 
             if prec and prec != "null":
                 _LOGGER.debug("Precipitation detected")
-                self._attr_is_on = False
-                return
+                self._add_reason(
+                    reasons,
+                    await _async_translate_reason(
+                        self.hass,
+                        "forecast_precipitation",
+                        {"date": fc_date_label},
+                    ),
+                )
             if cond in BAD_CONDITIONS:
                 _LOGGER.debug("Detected bad weather condition")
-                self._attr_is_on = False
-                return
+                self._add_reason(
+                    reasons,
+                    await _async_translate_reason(
+                        self.hass,
+                        "forecast_bad_condition",
+                        {"condition": cond, "date": fc_date_label},
+                    ),
+                )
             if tmin is not None and fc_date != cur_date:
                 tmin = self._temp2c(tmin, tmpu)
-                if temp < 0 <= tmin:
+                if self._rises_above_freezing(temp, tmin):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._attr_is_on = False
-                    return
+                    self._add_reason(
+                        reasons,
+                        await _async_translate_reason(
+                            self.hass,
+                            "forecast_freezing_rise",
+                            {"date": fc_date_label},
+                        ),
+                    )
                 temp = tmin
             if tmax is not None:
                 tmax = self._temp2c(tmax, tmpu)
-                if temp < 0 <= tmax:
+                if self._rises_above_freezing(temp, tmax):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._attr_is_on = False
-                    return
+                    self._add_reason(
+                        reasons,
+                        await _async_translate_reason(
+                            self.hass,
+                            "forecast_freezing_rise",
+                            {"date": fc_date_label},
+                        ),
+                    )
                 temp = tmax
 
+        if reasons:
+            _LOGGER.debug("Inspection done. Bad forecast detected")
+            self._set_state(
+                False,
+                reasons,
+                await _async_translate_reason(
+                    self.hass,
+                    "summary",
+                    {"reasons": _format_reason_list(reasons)},
+                ),
+            )
+            return
+
         _LOGGER.debug("Inspection done. No bad forecast detected")
-        self._attr_is_on = True
+        self._set_state(True)
