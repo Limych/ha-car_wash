@@ -104,7 +104,7 @@ class CarWashOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize Car Wash options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -114,7 +114,7 @@ class CarWashOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             weather_entity = user_input[CONF_WEATHER]
             for entry in self.hass.config_entries.async_entries(DOMAIN):
-                if entry.entry_id == self.config_entry.entry_id:
+                if entry.entry_id == self._config_entry.entry_id:
                     continue
 
                 config = {**entry.data, **entry.options}
@@ -130,8 +130,8 @@ class CarWashOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=_get_config_schema(
                 {
-                    **self.config_entry.data,
-                    **self.config_entry.options,
+                    **self._config_entry.data,
+                    **self._config_entry.options,
                 }
             ),
             errors=errors,
