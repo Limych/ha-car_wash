@@ -46,6 +46,8 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import (
+    ATTR_REASON,
+    ATTR_REASONS,
     BAD_CONDITIONS,
     CONF_DAYS,
     CONF_WEATHER,
@@ -122,6 +124,7 @@ class CarWashBinarySensor(BinarySensorEntity):
         self._attr_is_on = None
         self._attr_icon = ICON
         self._attr_device_class = f"{DOMAIN}__"
+        self._attr_extra_state_attributes = {ATTR_REASON: None, ATTR_REASONS: []}
         #
         self._attr_unique_id = (
             DOMAIN + "-" + str(self._weather_entity).split(".")[1]
@@ -154,6 +157,23 @@ class CarWashBinarySensor(BinarySensorEntity):
             self.async_schedule_update_ha_state(force_refresh=True)
 
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
+
+    def _set_state(
+        self, is_on: bool | None, reasons: list[str] | None = None
+    ) -> None:
+        """Set state and reason attribute."""
+        reasons = reasons or []
+        self._attr_is_on = is_on
+        self._attr_extra_state_attributes = {
+            ATTR_REASON: "; ".join(reasons) if reasons else None,
+            ATTR_REASONS: reasons,
+        }
+
+    @staticmethod
+    def _add_reason(reasons: list[str], reason: str) -> None:
+        """Add a reason once while preserving detection order."""
+        if reason not in reasons:
+            reasons.append(reason)
 
     @staticmethod
     def _temp2c(temperature: float | None, temperature_unit: str) -> float | None:
@@ -199,7 +219,7 @@ class CarWashBinarySensor(BinarySensorEntity):
                 return_response=True,
             )
         except HomeAssistantError as ex:
-            self._attr_is_on = None
+            self._set_state(None, ["Forecast data is unavailable"])
             msg = "Can't get forecast data! Are you sure it's the weather provider?"
             raise HomeAssistantError(msg) from ex
 
@@ -207,10 +227,11 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         temp = self._temp2c(temp, tmpu)
 
+        reasons: list[str] = []
+
         if cond in BAD_CONDITIONS:
             _LOGGER.debug("Detected bad weather condition")
-            self._attr_is_on = False
-            return
+            self._add_reason(reasons, f"Current weather condition is {cond}")
 
         today = dt_util.start_of_local_day()
         cur_date = today.strftime("%F")
@@ -249,20 +270,22 @@ class CarWashBinarySensor(BinarySensorEntity):
 
             if prec and prec != "null":
                 _LOGGER.debug("Precipitation detected")
-                self._attr_is_on = False
-                return
+                self._add_reason(reasons, f"Precipitation is forecast for {fc_date}")
             if cond in BAD_CONDITIONS:
                 _LOGGER.debug("Detected bad weather condition")
-                self._attr_is_on = False
-                return
+                self._add_reason(
+                    reasons, f"Weather condition {cond} is forecast for {fc_date}"
+                )
             if tmin is not None and fc_date != cur_date:
                 tmin = self._temp2c(tmin, tmpu)
                 if temp < 0 <= tmin:
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._attr_is_on = False
-                    return
+                    self._add_reason(
+                        reasons,
+                        f"Temperature is forecast to rise above freezing on {fc_date}",
+                    )
                 temp = tmin
             if tmax is not None:
                 tmax = self._temp2c(tmax, tmpu)
@@ -270,9 +293,16 @@ class CarWashBinarySensor(BinarySensorEntity):
                     _LOGGER.debug(
                         "Detected passage of temperature through melting point"
                     )
-                    self._attr_is_on = False
-                    return
+                    self._add_reason(
+                        reasons,
+                        f"Temperature is forecast to rise above freezing on {fc_date}",
+                    )
                 temp = tmax
 
+        if reasons:
+            _LOGGER.debug("Inspection done. Bad forecast detected")
+            self._set_state(False, reasons)
+            return
+
         _LOGGER.debug("Inspection done. No bad forecast detected")
-        self._attr_is_on = True
+        self._set_state(True)

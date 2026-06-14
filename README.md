@@ -94,6 +94,8 @@ When configured from the UI, these settings can be changed later from Settings >
   _(positive integer) (Optional) (Default value: 2)_\
   The number of days how far forward the sensor looks for the weather forecast.
 
+The sensor also exposes `reason` and `reasons` attributes. They are `null` and `[]` when washing looks OK. When the sensor says it is not a good time to wash the car, `reason` contains a readable summary and `reasons` contains all detected reasons as a list.
+
 ## Usage examples
 
 Follow the link to see example how you can use [this sensor in automations](https://community.home-assistant.io/t/car-wash-binary-sensor/110046/20).

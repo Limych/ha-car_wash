@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "days": "Voorspellingsdagen",
+          "name": "Naam",
+          "unique_id": "Unieke ID",
+          "weather": "Weerentiteit"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Onverwachte fout"
+    },
+    "abort": {
+      "already_configured": "Deze weerentiteit is al geconfigureerd"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "days": "Voorspellingsdagen",
+          "name": "Naam",
+          "unique_id": "Unieke ID",
+          "weather": "Weerentiteit"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "Deze weerentiteit is al geconfigureerd"
+    }
+  }
+}
