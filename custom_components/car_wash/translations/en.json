@@ -31,5 +31,16 @@
     "error": {
       "already_configured": "This weather entity is already configured"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "reason": {
+        "current_bad_condition": "Current weather condition is {condition}",
+        "forecast_bad_condition": "Weather condition {condition} is forecast for {date}",
+        "forecast_freezing_rise": "Temperature is forecast to rise above freezing on {date}",
+        "forecast_precipitation": "Precipitation is forecast for {date}",
+        "forecast_unavailable": "Forecast data is unavailable"
+      }
+    }
   }
 }

@@ -8,8 +8,10 @@ For more details about this platform, please refer to the documentation at
 https://github.com/Limych/ha-car_wash/
 """
 
+import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -59,6 +61,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_TRANSLATION_CACHE: dict[str, dict[str, str]] = {}
 
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {
@@ -68,6 +71,48 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
 )
+
+
+def _load_reason_translations(language: str) -> dict[str, str]:
+    """Load translated reason strings."""
+    if language in _TRANSLATION_CACHE:
+        return _TRANSLATION_CACHE[language]
+
+    path = Path(__file__).with_name("translations") / f"{language}.json"
+    if not path.exists() and "-" in language:
+        path = (
+            Path(__file__).with_name("translations")
+            / f"{language.split('-', 1)[0]}.json"
+        )
+    if not path.exists():
+        path = Path(__file__).with_name("translations") / "en.json"
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        _LOGGER.warning("Unable to load Car Wash translations for %s", language)
+        data = {}
+
+    translations = data.get("entity", {}).get("binary_sensor", {}).get("reason", {})
+    _TRANSLATION_CACHE[language] = translations
+    return translations
+
+
+def _translate_reason(
+    hass: HomeAssistant, key: str, placeholders: dict[str, str] | None = None
+) -> str:
+    """Return a translated reason string."""
+    placeholders = placeholders or {}
+    language = hass.config.language or "en"
+    translations = _load_reason_translations(language)
+    template = translations.get(key)
+
+    if template is None and language != "en":
+        template = _load_reason_translations("en").get(key)
+    if template is None:
+        template = key
+
+    return template.format(**placeholders)
 
 
 # pylint: disable=unused-argument
@@ -219,7 +264,15 @@ class CarWashBinarySensor(BinarySensorEntity):
                 return_response=True,
             )
         except HomeAssistantError as ex:
-            self._set_state(None, ["Forecast data is unavailable"])
+            self._set_state(
+                None,
+                [
+                    _translate_reason(
+                        self.hass,
+                        "forecast_unavailable",
+                    )
+                ],
+            )
             msg = "Can't get forecast data! Are you sure it's the weather provider?"
             raise HomeAssistantError(msg) from ex
 
@@ -231,7 +284,14 @@ class CarWashBinarySensor(BinarySensorEntity):
 
         if cond in BAD_CONDITIONS:
             _LOGGER.debug("Detected bad weather condition")
-            self._add_reason(reasons, f"Current weather condition is {cond}")
+            self._add_reason(
+                reasons,
+                _translate_reason(
+                    self.hass,
+                    "current_bad_condition",
+                    {"condition": cond},
+                ),
+            )
 
         today = dt_util.start_of_local_day()
         cur_date = today.strftime("%F")
@@ -270,11 +330,23 @@ class CarWashBinarySensor(BinarySensorEntity):
 
             if prec and prec != "null":
                 _LOGGER.debug("Precipitation detected")
-                self._add_reason(reasons, f"Precipitation is forecast for {fc_date}")
+                self._add_reason(
+                    reasons,
+                    _translate_reason(
+                        self.hass,
+                        "forecast_precipitation",
+                        {"date": fc_date},
+                    ),
+                )
             if cond in BAD_CONDITIONS:
                 _LOGGER.debug("Detected bad weather condition")
                 self._add_reason(
-                    reasons, f"Weather condition {cond} is forecast for {fc_date}"
+                    reasons,
+                    _translate_reason(
+                        self.hass,
+                        "forecast_bad_condition",
+                        {"condition": cond, "date": fc_date},
+                    ),
                 )
             if tmin is not None and fc_date != cur_date:
                 tmin = self._temp2c(tmin, tmpu)
@@ -284,7 +356,11 @@ class CarWashBinarySensor(BinarySensorEntity):
                     )
                     self._add_reason(
                         reasons,
-                        f"Temperature is forecast to rise above freezing on {fc_date}",
+                        _translate_reason(
+                            self.hass,
+                            "forecast_freezing_rise",
+                            {"date": fc_date},
+                        ),
                     )
                 temp = tmin
             if tmax is not None:
@@ -295,7 +371,11 @@ class CarWashBinarySensor(BinarySensorEntity):
                     )
                     self._add_reason(
                         reasons,
-                        f"Temperature is forecast to rise above freezing on {fc_date}",
+                        _translate_reason(
+                            self.hass,
+                            "forecast_freezing_rise",
+                            {"date": fc_date},
+                        ),
                     )
                 temp = tmax
 

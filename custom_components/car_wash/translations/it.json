@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "reason": {
+        "current_bad_condition": "La condizione meteo attuale è {condition}",
+        "forecast_bad_condition": "La condizione meteo {condition} è prevista per {date}",
+        "forecast_freezing_rise": "La temperatura dovrebbe salire sopra lo zero il {date}",
+        "forecast_precipitation": "Sono previste precipitazioni per {date}",
+        "forecast_unavailable": "I dati delle previsioni non sono disponibili"
+      }
+    }
+  }
+}

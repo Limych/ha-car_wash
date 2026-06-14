@@ -31,5 +31,16 @@
     "error": {
       "already_configured": "Deze weerentiteit is al geconfigureerd"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "reason": {
+        "current_bad_condition": "De huidige weersomstandigheid is {condition}",
+        "forecast_bad_condition": "Weersomstandigheid {condition} wordt voorspeld voor {date}",
+        "forecast_freezing_rise": "De temperatuur wordt voorspeld boven het vriespunt te stijgen op {date}",
+        "forecast_precipitation": "Neerslag wordt voorspeld voor {date}",
+        "forecast_unavailable": "Voorspellingsgegevens zijn niet beschikbaar"
+      }
+    }
   }
 }
