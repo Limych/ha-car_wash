@@ -54,6 +54,14 @@ def _get_config_schema(config: dict[str, Any] | None = None) -> vol.Schema:
     )
 
 
+def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Return config with a stable entity unique ID."""
+    data = dict(config)
+    if not data.get(CONF_UNIQUE_ID):
+        data[CONF_UNIQUE_ID] = f"{DOMAIN}-{data[CONF_WEATHER].split('.', 1)[1]}"
+    return data
+
+
 class CarWashConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Car Wash."""
 
@@ -65,15 +73,15 @@ class CarWashConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         if user_input is not None:
             weather_entity = user_input[CONF_WEATHER]
-            self._async_abort_entries_match({CONF_WEATHER: weather_entity})
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                config = {**entry.data, **entry.options}
+                if config.get(CONF_WEATHER) == weather_entity:
+                    return self.async_abort(reason="already_configured")
 
             await self.async_set_unique_id(weather_entity)
             self._abort_if_unique_id_configured()
 
-            data = dict(user_input)
-            if not data.get(CONF_UNIQUE_ID):
-                data[CONF_UNIQUE_ID] = f"{DOMAIN}-{weather_entity.split('.', 1)[1]}"
-
+            data = _normalize_config(user_input)
             return self.async_create_entry(
                 title=data[CONF_NAME],
                 data=data,
@@ -114,7 +122,9 @@ class CarWashOptionsFlowHandler(config_entries.OptionsFlow):
                     errors[CONF_WEATHER] = "already_configured"
                     break
             else:
-                return self.async_create_entry(title="", data=user_input)
+                return self.async_create_entry(
+                    title="", data=_normalize_config(user_input)
+                )
 
         return self.async_show_form(
             step_id="init",

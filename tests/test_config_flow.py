@@ -40,6 +40,28 @@ async def test_config_flow(hass: HomeAssistant):
     assert result["data"] == MOCK_CONFIG
 
 
+async def test_config_flow_generates_unique_id(hass: HomeAssistant):
+    """Test the config flow generates an entity unique ID."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    config = {
+        CONF_NAME: MOCK_NAME,
+        CONF_WEATHER: MOCK_WEATHER_ENTITY,
+        CONF_DAYS: MOCK_DAYS,
+    }
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=config
+    )
+
+    assert result["type"] == config_entries.FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        **config,
+        CONF_UNIQUE_ID: f"{DOMAIN}.test".replace(".", "-"),
+    }
+
+
 async def test_config_flow_duplicate_weather_entity(hass: HomeAssistant):
     """Test duplicate weather entity entries are rejected."""
     entry = MockConfigEntry(
