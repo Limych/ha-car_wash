@@ -4,7 +4,7 @@
     "codeowners": [
         "@Limych"
     ],
-    "config_flow": false,
+    "config_flow": true,
     "dependencies": [
         "weather"
     ],

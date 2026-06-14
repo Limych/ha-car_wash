@@ -25,8 +25,10 @@ I also suggest you [visit the support topic][forum] on the community forum.
 1. Have [HACS][hacs] installed, this will allow you to easily manage and track updates.
 1. Search for "Car Wash".
 1. Click Install below the found integration.
+1. Restart Home Assistant.
+1. In the Home Assistant UI, go to Settings > Devices & services, click Add Integration, and search for "Car Wash".
 
-... then if you want to use `configuration.yaml` to configure sensor...
+... or if you want to use `configuration.yaml` to configure sensor...
 1. Add `car_wash` sensor to your `configuration.yaml` file. See configuration examples below.
 1. Restart Home Assistant
 
@@ -37,8 +39,10 @@ I also suggest you [visit the support topic][forum] on the community forum.
 1. In the `custom_components` directory (folder) create a new folder called `car_wash`.
 1. Download file `car_wash.zip` from the [latest release section][releases-latest] in this repository.
 1. Extract _all_ files from this archive you downloaded in the directory (folder) you created.
+1. Restart Home Assistant.
+1. In the Home Assistant UI, go to Settings > Devices & services, click Add Integration, and search for "Car Wash".
 
-... then if you want to use `configuration.yaml` to configure sensor...
+... or if you want to use `configuration.yaml` to configure sensor...
 1. Add `car_wash` sensor to your `configuration.yaml` file. See configuration examples below.
 1. Restart Home Assistant
 
@@ -64,6 +68,8 @@ I put a lot of work into making this repo and component available and updated to
 
 > **_Note_**:\
 > This sensor should work with any weather provider in any of it settings. But please note that the sensor cannot see further than the weather provider shows. Therefore, it is recommended to set the `daily` mode in the weather provider settings. If necessary, you can configure a separate weather provider instance especially for this sensor.
+
+When configured from the UI, these settings can be changed later from Settings > Devices & services > Car Wash > Configure.
 
 **weather:**\
   _(string) (Required)_\

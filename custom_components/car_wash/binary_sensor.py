@@ -26,6 +26,7 @@ from homeassistant.components.weather import (
 from homeassistant.components.weather import (
     DOMAIN as WEATHER_DOMAIN,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_SUPPORTED_FEATURES,
     CONF_ENTITY_ID,
@@ -78,15 +79,27 @@ async def async_setup_platform(
     # Print startup message
     _LOGGER.info(STARTUP_MESSAGE)
 
-    async_add_entities(
-        [
-            CarWashBinarySensor(
-                config.get(CONF_UNIQUE_ID),
-                config.get(CONF_NAME),
-                config.get(CONF_WEATHER),
-                config.get(CONF_DAYS),
-            )
-        ]
+    async_add_entities([_create_entity(config)])
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,  # noqa: ARG001
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the Car Wash sensor from a config entry."""
+    _LOGGER.info(STARTUP_MESSAGE)
+
+    async_add_entities([_create_entity({**entry.data, **entry.options})])
+
+
+def _create_entity(config: ConfigType) -> "CarWashBinarySensor":
+    """Create the Car Wash binary sensor entity."""
+    return CarWashBinarySensor(
+        config.get(CONF_UNIQUE_ID),
+        config.get(CONF_NAME),
+        config.get(CONF_WEATHER),
+        int(config.get(CONF_DAYS)),
     )
 
 
